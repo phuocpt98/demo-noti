@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spring WS STOMP Demo Scenario — OneSubs</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --border: #475569;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #4ade80;
+    --green: #4ade80;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --blue: #38bdf8;
+    --purple: #a78bfa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    padding: 2rem;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  header {
+    text-align: center;
+    padding: 2rem 0 3rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2.5rem;
+  }
+  header h1 {
+    font-size: 2.25rem;
+    background: linear-gradient(135deg, var(--accent), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header .subtitle { color: var(--muted); margin-top: 0.5rem; font-size: 1rem; }
+  header .meta { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 3rem;
+  }
+  .toc h3 {
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .toc ol { list-style: none; counter-reset: item; }
+  .toc ol li {
+    counter-increment: item;
+    padding: 0.35rem 0 0.35rem 2rem;
+    color: var(--muted);
+    position: relative;
+  }
+  .toc ol li::before {
+    content: counter(item, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+    font-family: monospace;
+  }
+  .toc ol li a { color: var(--text); text-decoration: none; }
+  .toc ol li a:hover { color: var(--accent); }
+
+  .scenario {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+  .scenario::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 2rem;
+    bottom: 2rem;
+    width: 4px;
+    background: linear-gradient(180deg, var(--accent), var(--blue));
+    border-radius: 0 4px 4px 0;
+  }
+
+  .scenario .number {
+    display: inline-block;
+    background: var(--surface2);
+    color: var(--accent);
+    font-family: 'Cascadia Code', monospace;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    margin-bottom: 0.5rem;
+  }
+
+  .scenario h2 { font-size: 1.5rem; color: var(--text); margin-bottom: 0.5rem; }
+  .scenario .goal { color: var(--muted); font-style: italic; margin-bottom: 1.25rem; font-size: 0.95rem; }
+
+  .section { margin-top: 1.5rem; }
+  .section h4 {
+    font-size: 0.8rem;
+    color: var(--purple);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .section h4::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--purple);
+    border-radius: 50%;
+  }
+
+  .steps { list-style: none; counter-reset: step; }
+  .steps li {
+    counter-increment: step;
+    padding: 0.5rem 0 0.5rem 2.5rem;
+    position: relative;
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0.4rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    font-family: monospace;
+  }
+
+  .code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    font-family: 'Cascadia Code', monospace;
+    font-size: 0.82rem;
+    color: var(--green);
+    overflow-x: auto;
+    margin-top: 0.5rem;
+    line-height: 1.6;
+  }
+  .code .key { color: var(--accent); }
+  .code .str { color: var(--yellow); }
+  .code .comment { color: var(--muted); font-style: italic; }
+  .code .method { color: var(--blue); font-weight: 600; }
+  .code .kw { color: var(--purple); }
+
+  .expected {
+    background: rgba(74, 222, 128, 0.08);
+    border-left: 3px solid var(--green);
+    padding: 0.75rem 1rem;
+    border-radius: 0 8px 8px 0;
+    margin-top: 0.5rem;
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+  .expected strong { color: var(--green); }
+
+  .tag {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 0.5rem;
+  }
+  .tag-rest { background: rgba(74, 222, 128, 0.15); color: var(--accent); }
+  .tag-fe   { background: rgba(56, 189, 248, 0.15); color: var(--blue); }
+  .tag-java { background: rgba(167, 139, 250, 0.15); color: var(--purple); }
+
+  code.inline {
+    background: var(--surface2);
+    color: var(--yellow);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Cascadia Code', monospace;
+    font-size: 0.85rem;
+  }
+
+  .setup {
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(56, 189, 248, 0.08));
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 3rem;
+  }
+  .setup h3 { color: var(--accent); margin-bottom: 0.75rem; }
+  .setup ul { list-style: none; }
+  .setup ul li {
+    padding: 0.3rem 0 0.3rem 1.5rem;
+    color: var(--muted);
+    position: relative;
+  }
+  .setup ul li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 1rem; }
+    .scenario { padding: 1.25rem 1.5rem; }
+    header h1 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Spring WS + STOMP Demo Scenario</h1>
+    <p class="subtitle">Kịch bản demo real-time notification với Spring embedded Tomcat</p>
+    <p class="meta">OneSubs Admin · Phương án finalist · 2026-04-07</p>
+  </header>
+
+  <!-- Setup -->
+  <div class="setup">
+    <h3>🛠️ Chuẩn bị</h3>
+    <ul>
+      <li>Run Spring Boot trong IntelliJ hoặc <code class="inline">gradle bootRun</code> — verify log <code class="inline">Tomcat started on port 8080</code></li>
+      <li>Tab 1 (Alice, admin): <code class="inline">frontend/index.html</code> → username <code class="inline">alice</code>, role <code class="inline">admin</code> → Connect</li>
+      <li>Tab 2 (Bob, admin): username <code class="inline">bob</code>, role <code class="inline">admin</code> → Connect</li>
+      <li>Tab 3 (Carol, sale): username <code class="inline">carol</code>, role <code class="inline">sale</code> → Connect</li>
+      <li>Tab 4 (Publisher): <code class="inline">frontend/publisher.html</code></li>
+    </ul>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>📋 Kịch bản</h3>
+    <ol>
+      <li><a href="#s1">Publish User — Personal destination /user/queue/*</a></li>
+      <li><a href="#s2">Publish Topic — Role-based /topic/role/*</a></li>
+      <li><a href="#s3">Broadcast All — Global /topic/broadcast</a></li>
+      <li><a href="#s4">Stats — SimpUserRegistry tracked users</a></li>
+      <li><a href="#s5">Multi-tab isolation — User principal routing</a></li>
+      <li><a href="#s6">In-process publish từ Spring service</a></li>
+      <li><a href="#s7">So sánh STOMP destination model</a></li>
+    </ol>
+  </div>
+
+  <!-- Scenario 1 -->
+  <div class="scenario" id="s1">
+    <span class="number">SCENARIO 01</span>
+    <h2>Publish User — Personal destination <span class="tag tag-rest">POST /api/publish-user</span></h2>
+    <p class="goal">Mô phỏng: Phát vào personal queue của user <code class="inline">alice</code>. Spring dùng <code class="inline">SimpMessagingTemplate.convertAndSendToUser()</code> để route theo Principal.</p>
+
+    <div class="section">
+      <h4>Request</h4>
+      <div class="code"><span class="method">POST</span> http://localhost:8080/api/publish-user
+
+{
+  <span class="key">"username"</span>: <span class="str">"alice"</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"title"</span>: <span class="str">"🎯 Đơn hàng mới"</span>,
+    <span class="key">"body"</span>: <span class="str">"Chỉ Alice nhận — personal queue"</span>,
+    <span class="key">"level"</span>: <span class="str">"success"</span>
+  }
+}</div>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi <span class="tag tag-fe">FE</span></h4>
+      <div class="expected">
+        <strong>✓</strong> Chỉ Tab Alice hiện toast với destination <code class="inline">/user/queue/notifications</code>. Bob, Carol im lặng.
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Cơ chế dưới capo</h4>
+      <div class="code"><span class="comment">// NotificationPublisher.java</span>
+messaging.convertAndSendToUser(
+    <span class="str">"alice"</span>,
+    <span class="str">"/queue/notifications"</span>,
+    payload
+);
+
+<span class="comment">// Spring resolves "alice" to active session(s) via Principal</span>
+<span class="comment">// → routes message to /user/queue/notifications-user&lt;sessionId&gt;</span></div>
+    </div>
+  </div>
+
+  <!-- Scenario 2 -->
+  <div class="scenario" id="s2">
+    <span class="number">SCENARIO 02</span>
+    <h2>Publish Topic — Role-based broadcast <span class="tag tag-rest">POST /api/publish-topic</span></h2>
+    <p class="goal">Mô phỏng: Gửi thông báo cho tất cả admin. Alice + Bob đang sub <code class="inline">/topic/role/admin</code> → cả 2 nhận. Carol sub <code class="inline">role/sale</code> → không nhận.</p>
+
+    <div class="section">
+      <h4>Request</h4>
+      <div class="code"><span class="method">POST</span> http://localhost:8080/api/publish-topic
+
+{
+  <span class="key">"topic"</span>: <span class="str">"role/admin"</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"title"</span>: <span class="str">"⚠️ Admin alert"</span>,
+    <span class="key">"body"</span>: <span class="str">"Tất cả admin cần check dashboard"</span>,
+    <span class="key">"level"</span>: <span class="str">"warning"</span>
+  }
+}</div>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi</h4>
+      <div class="expected">
+        <strong>✓</strong> Tab Alice + Bob đều nhận (cùng sub <code class="inline">/topic/role/admin</code>).<br>
+        <strong>✓</strong> Tab Carol <strong>không</strong> nhận (đang sub <code class="inline">/topic/role/sale</code>).
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Test thêm</h4>
+      <ol class="steps">
+        <li>Đổi body: <code class="inline">"topic": "role/sale"</code> → Submit</li>
+        <li>Chỉ Carol nhận, Alice + Bob im lặng</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Scenario 3 -->
+  <div class="scenario" id="s3">
+    <span class="number">SCENARIO 03</span>
+    <h2>Broadcast All — Global topic <span class="tag tag-rest">POST /api/broadcast-all</span></h2>
+    <p class="goal">Emergency alert gửi vào <code class="inline">/topic/broadcast</code>. Tất cả clients đã sub sẽ nhận.</p>
+
+    <div class="section">
+      <h4>Request</h4>
+      <div class="code"><span class="method">POST</span> http://localhost:8080/api/broadcast-all
+
+{
+  <span class="key">"data"</span>: {
+    <span class="key">"title"</span>: <span class="str">"🚨 Hệ thống gặp sự cố"</span>,
+    <span class="key">"body"</span>: <span class="str">"Vui lòng dừng thao tác"</span>,
+    <span class="key">"level"</span>: <span class="str">"error"</span>
+  }
+}</div>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi</h4>
+      <div class="expected">
+        <strong>✓</strong> Tất cả 3 tab (Alice, Bob, Carol) đều nhận — destination hiển thị <code class="inline">/topic/broadcast</code>.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 4 -->
+  <div class="scenario" id="s4">
+    <span class="number">SCENARIO 04</span>
+    <h2>Stats — SimpUserRegistry <span class="tag tag-rest">GET /api/stats</span></h2>
+    <p class="goal">Spring tự track connected users qua <code class="inline">SimpUserRegistry</code>. Lấy stats không cần code thêm.</p>
+
+    <div class="section">
+      <h4>Request</h4>
+      <div class="code"><span class="method">GET</span> http://localhost:8080/api/stats</div>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi</h4>
+      <div class="code">{
+  <span class="key">"totalUsers"</span>: <span class="str">3</span>,
+  <span class="key">"usernames"</span>: [<span class="str">"alice"</span>, <span class="str">"bob"</span>, <span class="str">"carol"</span>]
+}</div>
+    </div>
+
+    <div class="section">
+      <h4>Test động</h4>
+      <ol class="steps">
+        <li>Đóng tab Carol → GET lại → <code class="inline">totalUsers: 2</code></li>
+        <li>Mở lại tab Carol → Connect → <code class="inline">totalUsers: 3</code></li>
+        <li>Registry tự update realtime qua session events của Spring.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Scenario 5 -->
+  <div class="scenario" id="s5">
+    <span class="number">SCENARIO 05</span>
+    <h2>Multi-tab isolation — Principal-based routing</h2>
+    <p class="goal">Chứng minh: Spring route personal message theo Principal chứ không phải sessionId thô.</p>
+
+    <div class="section">
+      <h4>Setup</h4>
+      <ol class="steps">
+        <li>Mở thêm 1 tab nữa với <strong>cùng username</strong> <code class="inline">alice</code> → Tab 1b</li>
+        <li>Bây giờ alice có 2 sessions trên server</li>
+        <li>Publish user <code class="inline">alice</code></li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi</h4>
+      <div class="expected">
+        <strong>✓</strong> <strong>CẢ HAI</strong> tab Alice (Tab 1 và Tab 1b) đều nhận cùng lúc. Spring fan-out personal queue đến mọi session gắn Principal "alice".
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Điểm nhấn</h4>
+      <div class="expected" style="border-left-color: var(--yellow); background: rgba(251, 191, 36, 0.08);">
+        ⚡ Đây là lý do dùng <code class="inline">/user/queue/*</code> thay vì tự quản sessionId: <strong>multi-device sync</strong>. User mở app trên cả desktop + mobile → đều nhận noti cùng lúc.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 6 -->
+  <div class="scenario" id="s6">
+    <span class="number">SCENARIO 06</span>
+    <h2>In-process publish từ Spring service <span class="tag tag-java">Java</span></h2>
+    <p class="goal">Inject <code class="inline">NotificationPublisher</code> thẳng vào domain service — 0ms overhead, cùng transaction context.</p>
+
+    <div class="section">
+      <h4>Example code trong OneSubs</h4>
+      <div class="code"><span class="comment">// OrderService.java</span>
+@Service
+@RequiredArgsConstructor
+<span class="kw">public class</span> OrderService {
+
+    <span class="kw">private final</span> OrderRepository orderRepo;
+    <span class="kw">private final</span> NotificationPublisher publisher;
+
+    @Transactional
+    <span class="kw">public</span> Order createOrder(CreateOrderRequest req) {
+        Order order = orderRepo.save(<span class="kw">new</span> Order(req));
+
+        <span class="comment">// Send sau khi DB commit thành công</span>
+        publisher.sendToUser(order.getAssignedSaleId(), Map.of(
+            <span class="str">"title"</span>, <span class="str">"Đơn mới #"</span> + order.getId(),
+            <span class="str">"body"</span>, order.getCustomerName(),
+            <span class="str">"level"</span>, <span class="str">"success"</span>
+        ));
+
+        <span class="comment">// Broadcast cho role manager để theo dõi tổng</span>
+        publisher.sendToTopic(<span class="str">"role/manager"</span>, Map.of(
+            <span class="str">"title"</span>, <span class="str">"Đơn mới tạo"</span>,
+            <span class="str">"body"</span>, <span class="str">"Đơn #"</span> + order.getId() + <span class="str">" vừa được tạo"</span>
+        ));
+
+        <span class="kw">return</span> order;
+    }
+}</div>
+    </div>
+
+    <div class="section">
+      <h4>Điểm mạnh</h4>
+      <div class="expected">
+        ✅ <strong>Zero HTTP call</strong> — publisher chỉ là method call<br>
+        ✅ <strong>Cùng thread + transaction</strong> — dùng <code class="inline">TransactionSynchronization.afterCommit()</code> để chỉ publish khi DB commit thành công<br>
+        ✅ <strong>Debug IDE</strong> — breakpoint trong publisher → trigger FE nhận ngay<br>
+        ✅ <strong>Tích hợp Spring Security</strong> — Principal trong STOMP = Principal trong SecurityContext
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 7 -->
+  <div class="scenario" id="s7">
+    <span class="number">SCENARIO 07</span>
+    <h2>STOMP Destination Model — Tổng quan</h2>
+    <p class="goal">Hiểu 3 loại destination và khi nào dùng.</p>
+
+    <div class="section">
+      <h4>So sánh 3 destinations</h4>
+      <div style="overflow-x: auto; border-radius: 8px; border: 1px solid var(--border);">
+        <table style="width:100%; border-collapse: collapse; font-size: 0.85rem;">
+          <thead>
+            <tr style="background: var(--surface2);">
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Destination</th>
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Phạm vi</th>
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Route by</th>
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Use case</th>
+            </tr>
+          </thead>
+          <tbody style="color: var(--muted);">
+            <tr>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">/user/queue/*</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Per-user (multi-session)</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Principal.name</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Personal noti, đơn mới cho sale</td>
+            </tr>
+            <tr style="background: rgba(30,41,59,0.4);">
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">/topic/*</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Fan-out</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Subscription match</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Role, order channel, broadcast</td>
+            </tr>
+            <tr>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">/app/*</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Client → Server</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">@MessageMapping</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Chat send, client actions</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Convention cho OneSubs</h4>
+      <div style="overflow-x: auto; border-radius: 8px; border: 1px solid var(--border);">
+        <table style="width:100%; border-collapse: collapse; font-size: 0.85rem;">
+          <thead>
+            <tr style="background: var(--surface2);">
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Loại</th>
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Destination</th>
+            </tr>
+          </thead>
+          <tbody style="color: var(--muted);">
+            <tr>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Personal noti cho user cụ thể</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">/user/queue/notifications</code></td>
+            </tr>
+            <tr style="background: rgba(30,41,59,0.4);">
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Role broadcast</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">/topic/role/{admin|sale|tech}</code></td>
+            </tr>
+            <tr>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Chat trên đơn hàng</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">/topic/order/{orderId}</code></td>
+            </tr>
+            <tr style="background: rgba(30,41,59,0.4);">
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Emergency broadcast</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">/topic/broadcast</code></td>
+            </tr>
+            <tr>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Client gửi chat</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">/app/chat/{orderId}</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wrap up -->
+  <div class="scenario" style="border-color: var(--accent);">
+    <span class="number" style="color: var(--accent);">WRAP UP</span>
+    <h2>🎯 Tổng kết demo</h2>
+    <div class="section">
+      <h4>Những gì đã show</h4>
+      <ol class="steps">
+        <li><strong>Embedded Tomcat</strong> — 1 port (8080) cho cả REST + WebSocket</li>
+        <li><strong>STOMP 3 destinations</strong> — /user/queue, /topic, /app</li>
+        <li><strong>Principal routing</strong> — multi-device sync tự động</li>
+        <li><strong>SimpUserRegistry</strong> — track online users không cần code</li>
+        <li><strong>In-process publish</strong> — inject bean, 0ms overhead</li>
+        <li><strong>Tích hợp Spring native</strong> — Security, MessageConverter, @MessageMapping</li>
+      </ol>
+    </div>
+    <div class="section">
+      <h4>Vì sao OneSubs chọn phương án này</h4>
+      <div class="expected">
+        ✅ <strong>Cùng stack Spring Boot</strong> — không thêm infra/process mới<br>
+        ✅ <strong>Same port</strong> — FE chỉ cần 1 endpoint, đơn giản nginx/CORS<br>
+        ✅ <strong>Two-way messaging ready</strong> — sẵn sàng cho chat Phase 2<br>
+        ✅ <strong>Code complexity thấp</strong> — ~5 classes, dễ maintain<br>
+        ✅ <strong>Scale mở rộng</strong> — có thể thay in-memory broker bằng RabbitMQ/Redis relay khi cần
+      </div>
+    </div>
+    <div class="section">
+      <h4>Điểm cần lưu ý khi production</h4>
+      <div class="expected" style="border-left-color: var(--yellow); background: rgba(251, 191, 36, 0.08);">
+        ⚠️ Thay <code class="inline">x-username</code> header bằng <strong>JWT validation</strong> thực sự<br>
+        ⚠️ Config <code class="inline">setAllowedOrigins</code> thay <code class="inline">*</code> bằng whitelist FE URL<br>
+        ⚠️ Monitor <code class="inline">SimpUserRegistry</code> để alert khi connection leak<br>
+        ⚠️ Dùng <code class="inline">@TransactionalEventListener(AFTER_COMMIT)</code> để tránh gửi noti khi rollback
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    OneSubs Admin — Spring WS + STOMP Demo Scenario | 2026-04-07
+  </footer>
+
+</div>
+</body>
+</html>

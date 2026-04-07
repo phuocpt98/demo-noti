@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Centrifugo Demo Scenario — OneSubs</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --border: #475569;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --green: #4ade80;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --purple: #a78bfa;
+    --orange: #fb923c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    padding: 2rem;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  header {
+    text-align: center;
+    padding: 2rem 0 3rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2.5rem;
+  }
+  header h1 {
+    font-size: 2.25rem;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header .subtitle { color: var(--muted); margin-top: 0.5rem; font-size: 1rem; }
+  header .meta { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+  /* TOC */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 3rem;
+  }
+  .toc h3 { color: var(--accent); margin-bottom: 0.75rem; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .toc ol { list-style: none; counter-reset: item; }
+  .toc ol li {
+    counter-increment: item;
+    padding: 0.35rem 0;
+    color: var(--muted);
+    padding-left: 2rem;
+    position: relative;
+  }
+  .toc ol li::before {
+    content: counter(item, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+    font-family: monospace;
+  }
+  .toc ol li a { color: var(--text); text-decoration: none; }
+  .toc ol li a:hover { color: var(--accent); }
+
+  /* Scenario card */
+  .scenario {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+  .scenario::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 2rem;
+    bottom: 2rem;
+    width: 4px;
+    background: linear-gradient(180deg, var(--accent), var(--purple));
+    border-radius: 0 4px 4px 0;
+  }
+
+  .scenario .number {
+    display: inline-block;
+    background: var(--surface2);
+    color: var(--accent);
+    font-family: 'Cascadia Code', monospace;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  .scenario h2 {
+    font-size: 1.5rem;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .scenario .goal {
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 1.25rem;
+    font-size: 0.95rem;
+  }
+
+  .section {
+    margin-top: 1.5rem;
+  }
+  .section h4 {
+    font-size: 0.8rem;
+    color: var(--purple);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .section h4::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--purple);
+    border-radius: 50%;
+  }
+
+  /* Steps list */
+  .steps {
+    list-style: none;
+    counter-reset: step;
+  }
+  .steps li {
+    counter-increment: step;
+    padding: 0.5rem 0 0.5rem 2.5rem;
+    position: relative;
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0.4rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    font-family: monospace;
+  }
+
+  /* Code block */
+  .code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    color: var(--green);
+    overflow-x: auto;
+    margin-top: 0.5rem;
+    line-height: 1.6;
+  }
+  .code .key { color: var(--accent); }
+  .code .str { color: var(--yellow); }
+  .code .comment { color: var(--muted); font-style: italic; }
+
+  /* Expected result */
+  .expected {
+    background: rgba(74, 222, 128, 0.08);
+    border-left: 3px solid var(--green);
+    padding: 0.75rem 1rem;
+    border-radius: 0 8px 8px 0;
+    margin-top: 0.5rem;
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+  .expected strong { color: var(--green); }
+
+  /* Tag */
+  .tag {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 0.5rem;
+  }
+  .tag-api { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
+  .tag-ui  { background: rgba(167, 139, 250, 0.15); color: var(--purple); }
+  .tag-fe  { background: rgba(74, 222, 128, 0.15); color: var(--green); }
+
+  code.inline {
+    background: var(--surface2);
+    color: var(--yellow);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Cascadia Code', monospace;
+    font-size: 0.85rem;
+  }
+
+  /* Setup box */
+  .setup {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(167, 139, 250, 0.08));
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 3rem;
+  }
+  .setup h3 { color: var(--accent); margin-bottom: 0.75rem; }
+  .setup ul { list-style: none; }
+  .setup ul li {
+    padding: 0.3rem 0 0.3rem 1.5rem;
+    color: var(--muted);
+    position: relative;
+  }
+  .setup ul li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 1rem; }
+    .scenario { padding: 1.25rem 1.5rem; }
+    header h1 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Centrifugo Demo Scenario</h1>
+    <p class="subtitle">Kịch bản demo real-time notification qua Admin UI</p>
+    <p class="meta">OneSubs Admin · 2026-04-07</p>
+  </header>
+
+  <!-- Setup -->
+  <div class="setup">
+    <h3>🛠️ Chuẩn bị trước khi demo</h3>
+    <ul>
+      <li>Centrifugo container running: <code class="inline">docker compose up -d</code></li>
+      <li>Mở tab 1: <strong>Admin UI</strong> → <code class="inline">http://localhost:8000</code> (login: <code class="inline">admin</code> / <code class="inline">admin</code>)</li>
+      <li>Mở tab 2: <strong>FE Receiver</strong> → <code class="inline">demo/index.html</code> → paste JWT → Connect (status "Connected")</li>
+      <li>(Tùy chọn) Mở thêm tab 3 với <em>User ID</em> khác để demo multi-user</li>
+      <li>Zoom browser lên ~125% để mọi người xem dễ</li>
+    </ul>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>📋 Kịch bản</h3>
+    <ol>
+      <li><a href="#s1">Publish — Phát message vào 1 channel</a></li>
+      <li><a href="#s2">Broadcast — Phát cùng message vào nhiều channels</a></li>
+      <li><a href="#s3">Presence — Xem ai đang online trong channel</a></li>
+      <li><a href="#s4">History — Load lại messages đã miss</a></li>
+      <li><a href="#s5">Channels — Dashboard tất cả channels đang active</a></li>
+      <li><a href="#s6">Disconnect — Force kick user ra khỏi server</a></li>
+      <li><a href="#s7">Info — Server health & stats</a></li>
+      <li><a href="#acl">🔐 Deep Dive — Phân quyền Channel (ACL)</a></li>
+    </ol>
+  </div>
+
+  <!-- Scenario 1 -->
+  <div class="scenario" id="s1">
+    <span class="number">SCENARIO 01</span>
+    <h2>Publish — Phát message vào 1 channel <span class="tag tag-api">publish</span></h2>
+    <p class="goal">Mô phỏng: Có đơn hàng mới → phát vào channel <code class="inline">notifications:user#123</code>. Ai đang subscribe channel đó sẽ nhận.</p>
+
+    <div class="section">
+      <h4>Các bước trên Admin UI</h4>
+      <ol class="steps">
+        <li>Vào tab <strong>Actions</strong> → dropdown method chọn <code class="inline">publish</code></li>
+        <li>Điền <code class="inline">channel</code>: <code class="inline">notifications:user#123</code></li>
+        <li>Điền <code class="inline">data</code>:</li>
+      </ol>
+      <div class="code">{
+  <span class="key">"title"</span>: <span class="str">"🎉 Đơn hàng mới #ORD-001"</span>,
+  <span class="key">"body"</span>: <span class="str">"Khách Nguyễn Văn A vừa đặt gói Premium 12 tháng"</span>,
+  <span class="key">"level"</span>: <span class="str">"success"</span>
+}</div>
+      <ol class="steps" start="4">
+        <li style="counter-increment: step 3;">Click <strong>Submit</strong></li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi <span class="tag tag-fe">FE</span></h4>
+      <div class="expected">
+        <strong>✓</strong> Tab FE Receiver hiện ngay <strong>toast popup</strong> màu xanh + entry mới trong list "Received Notifications". Counter tăng lên 1.
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Điểm nhấn khi trình bày</h4>
+      <div class="expected" style="border-left-color: var(--yellow); background: rgba(251, 191, 36, 0.08);">
+        ⚡ Nhấn mạnh: <strong>latency &lt;50ms</strong> — click Submit → noti xuất hiện gần như tức thời. Không polling, không refresh.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 2 -->
+  <div class="scenario" id="s2">
+    <span class="number">SCENARIO 02</span>
+    <h2>Broadcast — Phát cùng message vào nhiều channels <span class="tag tag-api">broadcast</span></h2>
+    <p class="goal">Mô phỏng: Admin thông báo maintenance — 1 API call phát vào N channels cùng lúc, ai subscribe bất kỳ channel nào trong list sẽ nhận.</p>
+
+    <div class="section">
+      <h4>Các bước trên Admin UI</h4>
+      <ol class="steps">
+        <li>Actions → chọn method <code class="inline">broadcast</code></li>
+        <li>Điền <code class="inline">channels</code> (array):</li>
+      </ol>
+      <div class="code">[
+  <span class="str">"notifications:user#123"</span>,
+  <span class="str">"notifications:user#456"</span>,
+  <span class="str">"notifications:user#789"</span>
+]</div>
+      <ol class="steps" start="3">
+        <li style="counter-increment: step 2;">Điền <code class="inline">data</code>:</li>
+      </ol>
+      <div class="code">{
+  <span class="key">"title"</span>: <span class="str">"⚠️ Bảo trì hệ thống"</span>,
+  <span class="key">"body"</span>: <span class="str">"Hệ thống sẽ tạm dừng 22:00 - 22:30 đêm nay"</span>,
+  <span class="key">"level"</span>: <span class="str">"warning"</span>
+}</div>
+      <ol class="steps" start="4">
+        <li style="counter-increment: step 3;">Submit</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi</h4>
+      <div class="expected">
+        <strong>✓</strong> Nếu có mở nhiều tab FE với user id khác nhau → tất cả nhận <strong>cùng lúc</strong>. 1 API call → N clients.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 3 -->
+  <div class="scenario" id="s3">
+    <span class="number">SCENARIO 03</span>
+    <h2>Presence — Ai đang online? <span class="tag tag-api">presence_stats</span></h2>
+    <p class="goal">Mô phỏng: Đếm số sale đang xem đơn hàng realtime — tính năng "● X người đang xem".</p>
+
+    <div class="section">
+      <h4>Các bước</h4>
+      <ol class="steps">
+        <li>Actions → chọn <code class="inline">presence_stats</code></li>
+        <li>Điền <code class="inline">channel</code>: <code class="inline">notifications:user#123</code></li>
+        <li>Submit</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi <span class="tag tag-ui">Admin UI</span></h4>
+      <div class="expected">
+        <strong>✓</strong> Response trả về:
+        <div class="code" style="margin-top: 0.5rem;">{ <span class="key">"num_clients"</span>: <span class="str">1</span>, <span class="key">"num_users"</span>: <span class="str">1</span> }</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Test nâng cao</h4>
+      <ol class="steps">
+        <li>Đóng tab FE Receiver → Submit lại <code class="inline">presence_stats</code></li>
+        <li>Giờ thấy <code class="inline">num_clients: 0</code> — update realtime theo connection thật</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Scenario 4 -->
+  <div class="scenario" id="s4">
+    <span class="number">SCENARIO 04</span>
+    <h2>History — Load lại messages đã miss <span class="tag tag-api">history</span></h2>
+    <p class="goal">Mô phỏng: User F5 trang, cần load lại 10 noti gần nhất mà không cần query DB.</p>
+
+    <div class="section">
+      <h4>Các bước</h4>
+      <ol class="steps">
+        <li>Publish vài message (lặp Scenario 01 ~3 lần với nội dung khác nhau)</li>
+        <li>Actions → chọn <code class="inline">history</code></li>
+        <li>Điền:</li>
+      </ol>
+      <div class="code">{
+  <span class="key">"channel"</span>: <span class="str">"notifications:user#123"</span>,
+  <span class="key">"limit"</span>: <span class="str">10</span>
+}</div>
+      <ol class="steps" start="4">
+        <li style="counter-increment: step 3;">Submit</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi</h4>
+      <div class="expected">
+        <strong>✓</strong> Response trả về array các publications gần nhất đã gửi vào channel đó, kèm offset + epoch.
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Điểm nhấn</h4>
+      <div class="expected" style="border-left-color: var(--yellow); background: rgba(251, 191, 36, 0.08);">
+        ⚡ History là <strong>buffer trong Centrifugo</strong> (config: <code class="inline">history_size: 10</code>, <code class="inline">history_ttl: 300s</code>). Không cần DB. Hỗ trợ reconnect tự động load lại missed messages.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 5 -->
+  <div class="scenario" id="s5">
+    <span class="number">SCENARIO 05</span>
+    <h2>Channels — Dashboard channels active <span class="tag tag-api">channels</span></h2>
+    <p class="goal">Mô phỏng: Admin xem tất cả channels đang có subscriber — overview traffic.</p>
+
+    <div class="section">
+      <h4>Các bước</h4>
+      <ol class="steps">
+        <li>Actions → chọn <code class="inline">channels</code></li>
+        <li>Điền <code class="inline">pattern</code>: <code class="inline">notifications:*</code></li>
+        <li>Submit</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi <span class="tag tag-ui">Admin UI</span></h4>
+      <div class="expected">
+        <strong>✓</strong> List channels + số client per channel. Có thể click vào tab <strong>Channels</strong> ở sidebar để xem giao diện dashboard đẹp hơn.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 6 -->
+  <div class="scenario" id="s6">
+    <span class="number">SCENARIO 06</span>
+    <h2>Disconnect — Force kick user <span class="tag tag-api">disconnect</span></h2>
+    <p class="goal">Mô phỏng: User bị disable account → cần kick ra khỏi tất cả connection ngay lập tức.</p>
+
+    <div class="section">
+      <h4>Các bước</h4>
+      <ol class="steps">
+        <li>Đảm bảo FE Receiver đang Connected</li>
+        <li>Actions → chọn <code class="inline">disconnect</code></li>
+        <li>Điền:</li>
+      </ol>
+      <div class="code">{
+  <span class="key">"user"</span>: <span class="str">"user-123"</span>
+}</div>
+      <ol class="steps" start="4">
+        <li style="counter-increment: step 3;">Submit</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi <span class="tag tag-fe">FE</span></h4>
+      <div class="expected">
+        <strong>✓</strong> Tab FE Receiver → status dot chuyển về xám, text "Disconnected: ...". Console log event disconnected từ server.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 7 -->
+  <div class="scenario" id="s7">
+    <span class="number">SCENARIO 07</span>
+    <h2>Info — Server health & stats <span class="tag tag-api">info</span></h2>
+    <p class="goal">Mô phỏng: DevOps monitor số connection, uptime, version.</p>
+
+    <div class="section">
+      <h4>Các bước</h4>
+      <ol class="steps">
+        <li>Actions → chọn <code class="inline">info</code></li>
+        <li>Body để trống <code class="inline">{}</code></li>
+        <li>Submit</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi</h4>
+      <div class="expected">
+        <strong>✓</strong> Response trả về <code class="inline">nodes[]</code> với: version, num_clients, num_users, num_channels, uptime. Dùng cho Prometheus/Grafana scraping.
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Bonus — Tab Status</h4>
+      <div class="expected" style="border-left-color: var(--purple); background: rgba(167, 139, 250, 0.08);">
+        💡 Click tab <strong>Status</strong> ở sidebar Admin UI → xem dashboard graphical của <code class="inline">info</code> — stats live update.
+      </div>
+    </div>
+  </div>
+
+  <!-- ACL Deep Dive -->
+  <div class="scenario" id="acl" style="border-color: var(--orange);">
+    <span class="number" style="color: var(--orange);">DEEP DIVE — ACL</span>
+    <h2>🔐 Phân quyền Channel — Logic quyết định</h2>
+    <p class="goal">Trả lời: "1 JWT có user/role/channel — Centrifugo check như nào? Làm sao biết channel phân quyền kiểu gì?"</p>
+
+    <div class="section">
+      <h4>Nguyên tắc cốt lõi</h4>
+      <div class="expected" style="border-left-color: var(--orange); background: rgba(251, 146, 60, 0.08);">
+        <strong>⚡ Centrifugo KHÔNG có concept "role" built-in.</strong><br>
+        Nó chỉ biết 2 thứ: <strong>User identity (JWT.sub)</strong> + <strong>Channel naming rules</strong>.<br>
+        "Phân quyền theo role" = convention đặt tên channel + BE logic.
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Flow check khi client subscribe</h4>
+      <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">
+        Ví dụ: Client có JWT <code class="inline">{ sub: "alice" }</code> gọi <code class="inline">subscribe("chat:user#alice")</code>. Centrifugo chạy 4 bước theo thứ tự:
+      </p>
+
+      <!-- Step 1 -->
+      <div style="background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 0.9rem 1.2rem; margin-bottom: 0.6rem;">
+        <div style="display:flex; align-items:center; gap: 0.6rem; margin-bottom: 0.4rem;">
+          <span style="background: var(--accent); color: var(--bg); width: 1.6rem; height: 1.6rem; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-weight: 700; font-family: monospace; font-size: 0.8rem;">1</span>
+          <strong style="color: var(--text);">Parse namespace từ tên channel</strong>
+        </div>
+        <div style="color: var(--muted); font-size: 0.88rem; padding-left: 2.2rem;">
+          Tách theo dấu <code class="inline">:</code> đầu tiên.<br>
+          <code class="inline">"chat:user#alice"</code> → namespace = <code class="inline">chat</code>, phần còn lại = <code class="inline">user#alice</code>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div style="background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 0.9rem 1.2rem; margin-bottom: 0.6rem;">
+        <div style="display:flex; align-items:center; gap: 0.6rem; margin-bottom: 0.4rem;">
+          <span style="background: var(--accent); color: var(--bg); width: 1.6rem; height: 1.6rem; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-weight: 700; font-family: monospace; font-size: 0.8rem;">2</span>
+          <strong style="color: var(--text);">Namespace có tồn tại trong <code class="inline">config.json</code>?</strong>
+        </div>
+        <div style="color: var(--muted); font-size: 0.88rem; padding-left: 2.2rem;">
+          <span style="color: var(--red);">❌ Không</span> → REJECT <code class="inline">"unknown channel"</code> (error code 102)<br>
+          <span style="color: var(--green);">✅ Có</span> → load rules của namespace (presence, history, allow_subscribe_for_client, proxy_subscribe...)
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div style="background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 0.9rem 1.2rem; margin-bottom: 0.6rem;">
+        <div style="display:flex; align-items:center; gap: 0.6rem; margin-bottom: 0.4rem;">
+          <span style="background: var(--accent); color: var(--bg); width: 1.6rem; height: 1.6rem; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-weight: 700; font-family: monospace; font-size: 0.8rem;">3</span>
+          <strong style="color: var(--text);">Phân tích ký tự đặc biệt trong phần còn lại</strong>
+        </div>
+        <div style="color: var(--muted); font-size: 0.88rem; padding-left: 2.2rem;">
+          Scan tìm <code class="inline">#</code> và <code class="inline">,</code>:
+          <ul style="margin-top: 0.3rem; padding-left: 1rem; list-style: none;">
+            <li>• <code class="inline">"user#alice"</code> → <strong style="color: var(--yellow);">user-limited</strong> (chỉ alice)</li>
+            <li>• <code class="inline">"team#alice,bob,carol"</code> → <strong style="color: var(--yellow);">multi-user</strong> (một trong 3)</li>
+            <li>• <code class="inline">"general"</code> (không có) → <strong style="color: var(--green);">public trong namespace</strong></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div style="background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 0.9rem 1.2rem; margin-bottom: 0.6rem;">
+        <div style="display:flex; align-items:center; gap: 0.6rem; margin-bottom: 0.4rem;">
+          <span style="background: var(--accent); color: var(--bg); width: 1.6rem; height: 1.6rem; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-weight: 700; font-family: monospace; font-size: 0.8rem;">4</span>
+          <strong style="color: var(--text);">Áp quy tắc ACL theo priority</strong>
+        </div>
+        <div style="color: var(--muted); font-size: 0.88rem; padding-left: 2.2rem;">
+          Centrifugo check theo thứ tự:
+          <ol style="margin-top: 0.3rem; padding-left: 1.2rem;">
+            <li><strong style="color: var(--purple);">proxy_subscribe = true?</strong> → POST đến BE endpoint → BE trả allow/deny</li>
+            <li><strong style="color: var(--accent);">allow_subscribe_for_client = false?</strong> → yêu cầu <strong>Sub-token</strong> riêng (ký từ BE)</li>
+            <li><strong style="color: var(--yellow);">Có <code class="inline">#userId</code>?</strong> → verify <code class="inline">JWT.sub == userId</code></li>
+            <li><strong style="color: var(--yellow);">Có <code class="inline">#a,b,c</code>?</strong> → verify <code class="inline">JWT.sub ∈ {a,b,c}</code></li>
+            <li><strong style="color: var(--green);">Còn lại</strong> → ALLOW (public trong namespace)</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="expected" style="border-left-color: var(--orange); background: rgba(251, 146, 60, 0.08); margin-top: 0.75rem;">
+        <strong>💡 Kết:</strong> Centrifugo quyết định ACL dựa trên <strong>(1) tên channel</strong> + <strong>(2) namespace config</strong> — hoàn toàn không đọc field <code class="inline">role</code> trong JWT.
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Bảng ví dụ check (JWT sub="alice")</h4>
+      <div style="overflow-x: auto; border-radius: 8px; border: 1px solid var(--border);">
+        <table style="width:100%; border-collapse: collapse; font-size: 0.85rem;">
+          <thead>
+            <tr style="background: var(--surface2);">
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Channel</th>
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Centrifugo check gì?</th>
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Kết quả</th>
+            </tr>
+          </thead>
+          <tbody style="color: var(--muted);">
+            <tr>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">chat:general</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Namespace <code class="inline">chat</code> cho phép subscribe?</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--green);">✅ Ai cũng vào</td>
+            </tr>
+            <tr style="background: rgba(30,41,59,0.4);">
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">chat:user#alice</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">JWT.sub == "alice"</code>?</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--green);">✅ OK</td>
+            </tr>
+            <tr>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">chat:user#bob</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">JWT.sub == "bob"</code>?</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--red);">❌ REJECT</td>
+            </tr>
+            <tr style="background: rgba(30,41,59,0.4);">
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">chat:team#alice,bob</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">JWT.sub ∈ {alice, bob}</code>?</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--green);">✅ OK</td>
+            </tr>
+            <tr>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">chat:team#bob,carol</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">JWT.sub ∈ {bob, carol}</code>?</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--red);">❌ REJECT</td>
+            </tr>
+            <tr style="background: rgba(30,41,59,0.4);">
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">orders:456</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Namespace có <code class="inline">proxy_subscribe=true</code> → Centrifugo gọi BE</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--yellow);">⚙️ BE quyết</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>🔑 3 Cơ chế ACL</h4>
+
+      <p style="color: var(--text); margin-top: 0.75rem; font-weight: 600;">Cơ chế A — Native Channel Prefix (đơn giản nhất)</p>
+      <div class="code"><span class="comment">// user-limited: chỉ user có JWT.sub == alice</span>
+<span class="str">"chat:user#alice"</span>
+
+<span class="comment">// multi-user: chỉ alice HOẶC bob</span>
+<span class="str">"chat:team#alice,bob"</span></div>
+      <div class="expected">
+        ✅ Không cần config gì thêm — Centrifugo tự verify theo JWT.sub.<br>
+        📍 Dùng cho: <strong>Personal notification</strong>, private chat, owner-based.
+      </div>
+
+      <p style="color: var(--text); margin-top: 1rem; font-weight: 600;">Cơ chế B — Subscribe Token (BE ký riêng cho channel)</p>
+      <div class="code"><span class="comment">// config.json</span>
+{
+  <span class="key">"namespaces"</span>: [{
+    <span class="key">"name"</span>: <span class="str">"notifications"</span>,
+    <span class="key">"allow_subscribe_for_client"</span>: <span class="str">false</span>
+  }]
+}</div>
+      <div class="code" style="margin-top: 0.4rem;"><span class="comment">// Flow</span>
+1. FE subscribe "notifications:role-admin"
+2. Centrifugo: "Phải có sub-token"
+3. FE → BE: "Cho tôi sub-token"
+4. BE check DB: alice.role == "admin"? → ký token
+   { <span class="key">sub</span>: <span class="str">"alice"</span>, <span class="key">channel</span>: <span class="str">"notifications:role-admin"</span> }
+5. FE gửi sub-token → Centrifugo verify → OK</div>
+      <div class="expected">
+        ✅ BE là người quyết định ACL — safe cho role-based.<br>
+        📍 Dùng cho: <strong>Role-based broadcast</strong>, tenant-scoped channel.
+      </div>
+
+      <p style="color: var(--text); margin-top: 1rem; font-weight: 600;">Cơ chế C — Proxy Subscribe (BE quyết mỗi lần)</p>
+      <div class="code"><span class="comment">// config.json</span>
+{
+  <span class="key">"proxy"</span>: {
+    <span class="key">"subscribe_endpoint"</span>: <span class="str">"http://backend:8080/centrifugo/subscribe"</span>
+  },
+  <span class="key">"namespaces"</span>: [{
+    <span class="key">"name"</span>: <span class="str">"orders"</span>,
+    <span class="key">"proxy_subscribe"</span>: <span class="str">true</span>
+  }]
+}</div>
+      <div class="code" style="margin-top: 0.4rem;"><span class="comment">// Flow</span>
+1. FE subscribe "orders:456"
+2. Centrifugo POST → BE /centrifugo/subscribe
+   { <span class="key">user</span>: <span class="str">"alice"</span>, <span class="key">channel</span>: <span class="str">"orders:456"</span> }
+3. BE query DB: alice là owner/assignee của order 456?
+4. BE trả { <span class="key">allow</span>: <span class="str">true/false</span> }
+5. Centrifugo allow/reject</div>
+      <div class="expected">
+        ✅ Logic tập trung BE, dễ audit, update realtime theo DB.<br>
+        📍 Dùng cho: <strong>Complex ACL</strong> — owner, assignee, dynamic permission.
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>🎯 Khuyến nghị OneSubs — Convention đặt tên</h4>
+      <div style="overflow-x: auto; border-radius: 8px; border: 1px solid var(--border);">
+        <table style="width:100%; border-collapse: collapse; font-size: 0.85rem;">
+          <thead>
+            <tr style="background: var(--surface2);">
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Loại noti</th>
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Channel pattern</th>
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Cơ chế</th>
+            </tr>
+          </thead>
+          <tbody style="color: var(--muted);">
+            <tr>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Personal (đơn mới của sale)</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">notifications:user#&lt;id&gt;</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--green);">A — Native <code class="inline">#</code></td>
+            </tr>
+            <tr style="background: rgba(30,41,59,0.4);">
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Role-based (admin broadcast)</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">notifications:role-admin</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--accent);">B — Sub-token</td>
+            </tr>
+            <tr>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Chat nhóm cố định</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">chat:order#u1,u2,u3</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--green);">A — Native <code class="inline">,</code></td>
+            </tr>
+            <tr style="background: rgba(30,41,59,0.4);">
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Per-order (owner/assignee động)</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);"><code class="inline">orders:&lt;id&gt;</code></td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--purple);">C — Proxy subscribe</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>💡 Trả lời thẳng 2 câu hỏi</h4>
+      <div class="expected">
+        <strong>Q1:</strong> "1 token có user/role/channel thì check như nào?"<br>
+        <strong>A:</strong> JWT connection token chỉ cần <code class="inline">sub</code> (user id). <strong>Không nhét role vào JWT để Centrifugo check</strong> — vì nó không đọc role. Centrifugo chỉ so JWT.sub với ký tự đặc biệt trong tên channel. Role check = <strong>BE tự làm</strong> khi issue sub-token (cơ chế B) hoặc trong proxy endpoint (cơ chế C).
+      </div>
+      <div class="expected" style="margin-top: 0.5rem;">
+        <strong>Q2:</strong> "Làm sao biết channel đó phân quyền kiểu nào?"<br>
+        <strong>A:</strong> Từ 2 nơi:
+        <ol style="margin-top: 0.3rem; padding-left: 1.2rem;">
+          <li><strong>Tên channel</strong> — có <code class="inline">#userId</code>, có <code class="inline">,</code> → Centrifugo tự biết (cơ chế A)</li>
+          <li><strong>Namespace config</strong> — <code class="inline">allow_subscribe_for_client</code>, <code class="inline">proxy_subscribe</code> → bắt buộc qua BE không</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Closing -->
+  <div class="scenario" style="border-color: var(--green);">
+    <span class="number" style="color: var(--green);">WRAP UP</span>
+    <h2>🎯 Tổng kết demo</h2>
+    <div class="section">
+      <h4>Những gì đã show</h4>
+      <ol class="steps">
+        <li><strong>Realtime</strong> — publish → FE nhận &lt;50ms, không polling</li>
+        <li><strong>Targeted</strong> — user-specific channel (<code class="inline">user#123</code>)</li>
+        <li><strong>Broadcast</strong> — 1 call, N clients</li>
+        <li><strong>Presence</strong> — biết ai đang online</li>
+        <li><strong>History</strong> — reconnect không miss message</li>
+        <li><strong>Control</strong> — force disconnect, monitoring</li>
+      </ol>
+    </div>
+    <div class="section">
+      <h4>Ứng dụng cho OneSubs</h4>
+      <div class="expected">
+        <strong>Phase 1:</strong> Notification đơn hàng mới, thay đổi trạng thái, assignment.<br>
+        <strong>Phase 2:</strong> Chat nội bộ trên đơn hàng (two-way).<br>
+        <strong>Phase 3:</strong> Khi &gt;500 concurrent → scale WS server riêng.
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    OneSubs Admin — Centrifugo Demo Scenario | 2026-04-07
+  </footer>
+
+</div>
+</body>
+</html>

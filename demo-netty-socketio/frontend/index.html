@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Netty-SocketIO Notification Demo</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: #475569;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #fb923c;
+      --green: #4ade80;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --purple: #a78bfa;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    header { margin-bottom: 2rem; }
+    h1 {
+      font-size: 1.75rem;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .meta { color: var(--muted); font-size: 0.875rem; margin-top: 0.25rem; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .panel h2 {
+      font-size: 1rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-row { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; }
+    .form-row label { width: 100px; color: var(--muted); font-size: 0.875rem; }
+    .form-row input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      color: var(--text);
+      font-family: 'Cascadia Code', monospace;
+      font-size: 0.85rem;
+    }
+    .form-row input:focus { outline: none; border-color: var(--accent); }
+
+    .actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    button {
+      padding: 0.5rem 1.25rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    button:hover:not(:disabled) { transform: translateY(-1px); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-connect { background: var(--green); color: #0f172a; }
+    .btn-disconnect { background: var(--red); color: #fff; }
+    .btn-clear { background: var(--surface2); color: var(--text); }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      box-shadow: 0 0 8px currentColor;
+    }
+    .status-dot.connected { background: var(--green); animation: pulse 2s infinite; }
+    .status-dot.connecting { background: var(--yellow); }
+    .status-dot.error { background: var(--red); }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .status-text { font-size: 0.875rem; color: var(--muted); }
+    .status-text strong { color: var(--text); }
+
+    .noti-list { display: flex; flex-direction: column; gap: 0.75rem; max-height: 500px; overflow-y: auto; }
+    .noti-empty { text-align: center; padding: 2rem; color: var(--muted); font-style: italic; }
+    .noti-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      animation: slideIn 0.3s ease;
+    }
+    .noti-item.level-info { border-left-color: var(--accent); }
+    .noti-item.level-success { border-left-color: var(--green); }
+    .noti-item.level-warning { border-left-color: var(--yellow); }
+    .noti-item.level-error { border-left-color: var(--red); }
+    .noti-item .title { font-weight: 600; color: var(--text); margin-bottom: 0.25rem; }
+    .noti-item .body { color: var(--muted); font-size: 0.875rem; }
+    .noti-item .time { color: var(--muted); font-size: 0.75rem; margin-top: 0.5rem; font-family: monospace; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+    .toast-container {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 1000;
+      max-width: 360px;
+    }
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 0.875rem 1rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      animation: toastIn 0.3s ease;
+    }
+    .toast.out { animation: toastOut 0.3s ease forwards; }
+    .toast .title { font-weight: 600; color: var(--text); }
+    .toast .body { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { to { opacity: 0; transform: translateX(100%); } }
+
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      background: var(--surface2);
+      color: var(--text);
+      margin-left: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Netty-SocketIO Notification Demo</h1>
+      <p class="meta">OneSubs Admin · Embedded in Spring Boot · 2026-04-07</p>
+    </header>
+
+    <div class="panel">
+      <h2>Connection</h2>
+      <div class="form-row">
+        <label>Server URL</label>
+        <input id="serverUrl" value="http://localhost:9092" />
+      </div>
+      <div class="form-row">
+        <label>User ID</label>
+        <input id="userId" value="alice" />
+      </div>
+      <div class="form-row">
+        <label>Auto-room</label>
+        <input id="room" value="user#alice" readonly />
+      </div>
+      <div class="actions">
+        <button id="btnConnect" class="btn-connect">Connect</button>
+        <button id="btnDisconnect" class="btn-disconnect" disabled>Disconnect</button>
+      </div>
+      <div class="status-row">
+        <div id="statusDot" class="status-dot"></div>
+        <div class="status-text">
+          Status: <strong id="statusText">Disconnected</strong>
+          <span id="receivedCount" class="badge">0 received</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>
+        Received Notifications
+        <button id="btnClear" class="btn-clear" style="float:right; font-size:0.75rem; padding:0.25rem 0.75rem;">Clear</button>
+      </h2>
+      <div id="notiList" class="noti-list">
+        <div class="noti-empty">Chưa có notification. Publish vào <code>user#alice</code> qua REST API để test.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- socket.io-client via CDN (must match server major version 2.x for netty-socketio 2.0.12) -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    // ==============================
+    // Netty-SocketIO Notification Demo
+    // ==============================
+    const el = (id) => document.getElementById(id);
+    const state = { socket: null, count: 0 };
+
+    function setStatus(text, variant) {
+      el('statusText').textContent = text;
+      el('statusDot').className = 'status-dot' + (variant ? ' ' + variant : '');
+    }
+
+    function setButtons(connected) {
+      el('btnConnect').disabled = connected;
+      el('btnDisconnect').disabled = !connected;
+      ['serverUrl', 'userId'].forEach((id) => (el(id).disabled = connected));
+    }
+
+    // Auto-sync room display when userId changes.
+    el('userId').addEventListener('input', (e) => {
+      el('room').value = `user#${e.target.value.trim()}`;
+    });
+
+    function renderNoti(data) {
+      state.count += 1;
+      el('receivedCount').textContent = `${state.count} received`;
+
+      const list = el('notiList');
+      const empty = list.querySelector('.noti-empty');
+      if (empty) empty.remove();
+
+      const item = document.createElement('div');
+      const level = data.level || 'info';
+      item.className = `noti-item level-${level}`;
+      item.innerHTML = `
+        <div class="title">${escapeHtml(data.title || '(no title)')}</div>
+        <div class="body">${escapeHtml(data.body || '')}</div>
+        <div class="time">${new Date().toLocaleTimeString()}</div>
+      `;
+      list.insertBefore(item, list.firstChild);
+    }
+
+    function showToast(data) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `
+        <div class="title">${escapeHtml(data.title || 'Notification')}</div>
+        <div class="body">${escapeHtml(data.body || '')}</div>
+      `;
+      el('toastContainer').appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('out');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function connect() {
+      const url = el('serverUrl').value.trim();
+      const userId = el('userId').value.trim();
+      if (!userId) { alert('Vui lòng nhập User ID'); return; }
+
+      setStatus('Connecting...', 'connecting');
+
+      // Pass userId via handshake query param — server AuthorizationListener reads it.
+      const socket = io(url, {
+        query: { userId },
+        // Allow polling handshake first, then upgrade to WebSocket.
+        // Forcing "websocket" only often fails with netty-socketio.
+        transports: ['polling', 'websocket'],
+        reconnection: true,
+      });
+
+      socket.on('connect', () => {
+        console.log('[socket.io] connected', socket.id);
+        setStatus('Connected', 'connected');
+        setButtons(true);
+      });
+      socket.on('disconnect', (reason) => {
+        console.log('[socket.io] disconnected', reason);
+        setStatus(`Disconnected: ${reason}`, '');
+        setButtons(false);
+      });
+      socket.on('connect_error', (err) => {
+        console.error('[socket.io] error', err);
+        setStatus(`Error: ${err.message}`, 'error');
+      });
+      socket.on('notification', (data) => {
+        console.log('[noti]', data);
+        renderNoti(data);
+        showToast(data);
+      });
+
+      state.socket = socket;
+    }
+
+    function disconnect() {
+      if (state.socket) {
+        state.socket.disconnect();
+        state.socket = null;
+      }
+      setButtons(false);
+      setStatus('Disconnected', '');
+    }
+
+    function clearList() {
+      state.count = 0;
+      el('receivedCount').textContent = '0 received';
+      el('notiList').innerHTML = '<div class="noti-empty">Chưa có notification.</div>';
+    }
+
+    el('btnConnect').addEventListener('click', connect);
+    el('btnDisconnect').addEventListener('click', disconnect);
+    el('btnClear').addEventListener('click', clearList);
+  </script>
+</body>
+</html>

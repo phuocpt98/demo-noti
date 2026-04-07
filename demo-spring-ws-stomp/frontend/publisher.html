@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spring WS STOMP Publisher UI</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: #475569;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #4ade80;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --blue: #38bdf8;
+      --purple: #a78bfa;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem;
+    }
+    .container { max-width: 980px; margin: 0 auto; }
+    header { margin-bottom: 2rem; }
+    h1 {
+      font-size: 1.75rem;
+      background: linear-gradient(135deg, var(--accent), var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .meta { color: var(--muted); font-size: 0.875rem; margin-top: 0.25rem; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .panel h2 {
+      font-size: 1rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 0.5rem 1rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-family: 'Cascadia Code', monospace;
+      font-weight: 600;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
+
+    .form-row { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; }
+    .form-row label { width: 110px; color: var(--muted); font-size: 0.875rem; }
+    .form-row input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      color: var(--text);
+      font-family: 'Cascadia Code', monospace;
+      font-size: 0.85rem;
+    }
+    .form-row input:focus,
+    textarea:focus { outline: none; border-color: var(--accent); }
+
+    textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      color: var(--accent);
+      font-family: 'Cascadia Code', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      resize: vertical;
+      min-height: 140px;
+    }
+    .label-sm {
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0.75rem 0 0.4rem;
+      display: block;
+    }
+
+    .actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+    button {
+      padding: 0.55rem 1.35rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    button:hover:not(:disabled) { transform: translateY(-1px); }
+    .btn-send { background: var(--accent); color: var(--bg); }
+    .btn-preset { background: var(--surface2); color: var(--text); font-size: 0.75rem; padding: 0.35rem 0.85rem; }
+    .btn-clear { background: var(--surface2); color: var(--text); font-size: 0.75rem; padding: 0.35rem 0.85rem; }
+
+    .response {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+      font-family: 'Cascadia Code', monospace;
+      font-size: 0.82rem;
+      max-height: 260px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .response.success { border-left: 3px solid var(--accent); color: var(--accent); }
+    .response.error   { border-left: 3px solid var(--red); color: var(--red); }
+    .response.idle    { color: var(--muted); font-style: italic; }
+
+    .history-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 0.6rem 0.9rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.82rem;
+      font-family: 'Cascadia Code', monospace;
+    }
+    .history-item.fail { border-left-color: var(--red); }
+    .history-item .time { color: var(--muted); font-size: 0.7rem; }
+    .history-item .method { color: var(--blue); font-weight: 700; margin-right: 0.4rem; }
+    .history-item .url { color: var(--text); }
+    .history-item .status { float: right; font-weight: 700; }
+    .history-item .status.ok   { color: var(--accent); }
+    .history-item .status.fail { color: var(--red); }
+    .history-empty { color: var(--muted); font-style: italic; text-align: center; padding: 1rem; }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Spring WS STOMP Publisher UI</h1>
+      <p class="meta">Gọi Spring Boot REST → SimpMessagingTemplate → STOMP subscribers · 2026-04-07</p>
+    </header>
+
+    <div class="panel">
+      <h2>Server</h2>
+      <div class="form-row">
+        <label>Base URL</label>
+        <input id="baseUrl" value="http://localhost:8080" />
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Request Builder</h2>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-method="publish-user">POST /api/publish-user</button>
+        <button class="tab-btn" data-method="publish-topic">POST /api/publish-topic</button>
+        <button class="tab-btn" data-method="broadcast-all">POST /api/broadcast-all</button>
+        <button class="tab-btn" data-method="stats">GET /api/stats</button>
+      </div>
+
+      <div id="bodyWrapper">
+        <label class="label-sm">Request Body (JSON)</label>
+        <textarea id="bodyInput" spellcheck="false"></textarea>
+      </div>
+
+      <div class="actions">
+        <button id="btnSend" class="btn-send">▶ Send Request</button>
+        <button id="btnPreset1" class="btn-preset">Preset: user alice</button>
+        <button id="btnPreset2" class="btn-preset">Preset: role admin</button>
+        <button id="btnPreset3" class="btn-preset">Preset: broadcast all</button>
+      </div>
+
+      <div id="responseBox" class="response idle">Chưa có response. Click "Send Request" để bắt đầu.</div>
+    </div>
+
+    <div class="panel">
+      <h2>
+        Request History
+        <button id="btnClearHistory" class="btn-clear">Clear</button>
+      </h2>
+      <div id="historyList">
+        <div class="history-empty">Chưa có request nào.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+
+    // Method catalog mirrors PublishController REST surface.
+    const METHODS = {
+      'publish-user': {
+        verb: 'POST',
+        path: '/api/publish-user',
+        body: {
+          username: 'alice',
+          data: {
+            title: '🎯 Đơn hàng mới cho Alice',
+            body: 'Khách Nguyễn Văn A vừa đặt gói Premium',
+            level: 'success'
+          }
+        }
+      },
+      'publish-topic': {
+        verb: 'POST',
+        path: '/api/publish-topic',
+        body: {
+          topic: 'role/admin',
+          data: {
+            title: '⚠️ Admin alert',
+            body: 'Tất cả admin đang subscribe role/admin sẽ nhận',
+            level: 'warning'
+          }
+        }
+      },
+      'broadcast-all': {
+        verb: 'POST',
+        path: '/api/broadcast-all',
+        body: {
+          data: {
+            title: '🚨 Emergency broadcast',
+            body: 'Toàn bộ user subscribe /topic/broadcast sẽ nhận',
+            level: 'error'
+          }
+        }
+      },
+      'stats': { verb: 'GET', path: '/api/stats', body: null }
+    };
+
+    const state = { current: 'publish-user', history: [] };
+
+    function selectMethod(key) {
+      state.current = key;
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.method === key);
+      });
+      const def = METHODS[key];
+      if (def.body === null) {
+        el('bodyWrapper').classList.add('hidden');
+      } else {
+        el('bodyWrapper').classList.remove('hidden');
+        el('bodyInput').value = JSON.stringify(def.body, null, 2);
+      }
+    }
+
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => selectMethod(btn.dataset.method));
+    });
+
+    async function sendRequest() {
+      const def = METHODS[state.current];
+      const base = el('baseUrl').value.trim().replace(/\/$/, '');
+      const url = base + def.path;
+
+      let bodyRaw = null;
+      if (def.body !== null) {
+        try { bodyRaw = JSON.parse(el('bodyInput').value); }
+        catch (e) { showResponse('❌ Invalid JSON: ' + e.message, 'error'); return; }
+      }
+
+      showResponse('⏳ Sending...', 'idle');
+      const startedAt = Date.now();
+
+      try {
+        const options = { method: def.verb, headers: { 'Content-Type': 'application/json' } };
+        if (bodyRaw !== null) options.body = JSON.stringify(bodyRaw);
+
+        const res = await fetch(url, options);
+        const elapsed = Date.now() - startedAt;
+        const text = await res.text();
+        let parsed;
+        try { parsed = JSON.parse(text); } catch { parsed = text; }
+
+        const ok = res.ok;
+        const pretty = typeof parsed === 'object' ? JSON.stringify(parsed, null, 2) : parsed;
+        showResponse(
+          `${ok ? '✅' : '❌'} ${res.status} ${res.statusText}  (${elapsed}ms)\n\n${pretty}`,
+          ok ? 'success' : 'error'
+        );
+        addHistory(def.verb, def.path, res.status, ok);
+      } catch (err) {
+        showResponse(`❌ Network error: ${err.message}`, 'error');
+        addHistory(def.verb, def.path, 'ERR', false);
+      }
+    }
+
+    function showResponse(text, variant) {
+      const box = el('responseBox');
+      box.textContent = text;
+      box.className = 'response ' + variant;
+    }
+
+    function addHistory(verb, path, status, ok) {
+      state.history.unshift({ verb, path, status, ok, time: new Date().toLocaleTimeString() });
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const list = el('historyList');
+      if (state.history.length === 0) {
+        list.innerHTML = '<div class="history-empty">Chưa có request nào.</div>';
+        return;
+      }
+      list.innerHTML = state.history.slice(0, 20).map((h) => `
+        <div class="history-item ${h.ok ? '' : 'fail'}">
+          <span class="method">${h.verb}</span>
+          <span class="url">${h.path}</span>
+          <span class="status ${h.ok ? 'ok' : 'fail'}">${h.status}</span>
+          <div class="time">${h.time}</div>
+        </div>
+      `).join('');
+    }
+
+    el('btnPreset1').addEventListener('click', () => {
+      selectMethod('publish-user');
+      el('bodyInput').value = JSON.stringify({
+        username: 'alice',
+        data: { title: '🎯 Cho Alice', body: 'Chỉ Alice nhận (personal queue)', level: 'info' }
+      }, null, 2);
+    });
+    el('btnPreset2').addEventListener('click', () => {
+      selectMethod('publish-topic');
+      el('bodyInput').value = JSON.stringify({
+        topic: 'role/admin',
+        data: { title: '📢 Role admin', body: 'Admin đang subscribe /topic/role/admin sẽ nhận', level: 'warning' }
+      }, null, 2);
+    });
+    el('btnPreset3').addEventListener('click', () => {
+      selectMethod('broadcast-all');
+      el('bodyInput').value = JSON.stringify({
+        data: { title: '🚨 Toàn bộ', body: 'Mọi tab subscribe /topic/broadcast sẽ nhận', level: 'error' }
+      }, null, 2);
+    });
+
+    el('btnSend').addEventListener('click', sendRequest);
+    el('btnClearHistory').addEventListener('click', () => { state.history = []; renderHistory(); });
+
+    selectMethod('publish-user');
+  </script>
+</body>
+</html>

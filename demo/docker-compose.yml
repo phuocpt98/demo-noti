@@ -1,0 +1,13 @@
+services:
+  centrifugo:
+    image: centrifugo/centrifugo:v5
+    container_name: Netty-SocketIO-demo
+    command: centrifugo -c config.json
+    volumes:
+      - ./config.json:/centrifugo/config.json
+    ports:
+      - "8000:8000"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536

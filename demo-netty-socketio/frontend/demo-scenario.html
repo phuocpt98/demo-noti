@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Netty-SocketIO Demo Scenario — OneSubs</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --border: #475569;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #fb923c;
+    --green: #4ade80;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --purple: #a78bfa;
+    --blue: #38bdf8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    padding: 2rem;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  header {
+    text-align: center;
+    padding: 2rem 0 3rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2.5rem;
+  }
+  header h1 {
+    font-size: 2.25rem;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header .subtitle { color: var(--muted); margin-top: 0.5rem; font-size: 1rem; }
+  header .meta { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 3rem;
+  }
+  .toc h3 {
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .toc ol { list-style: none; counter-reset: item; }
+  .toc ol li {
+    counter-increment: item;
+    padding: 0.35rem 0 0.35rem 2rem;
+    color: var(--muted);
+    position: relative;
+  }
+  .toc ol li::before {
+    content: counter(item, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+    font-family: monospace;
+  }
+  .toc ol li a { color: var(--text); text-decoration: none; }
+  .toc ol li a:hover { color: var(--accent); }
+
+  .scenario {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+  .scenario::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 2rem;
+    bottom: 2rem;
+    width: 4px;
+    background: linear-gradient(180deg, var(--accent), var(--purple));
+    border-radius: 0 4px 4px 0;
+  }
+
+  .scenario .number {
+    display: inline-block;
+    background: var(--surface2);
+    color: var(--accent);
+    font-family: 'Cascadia Code', monospace;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  .scenario h2 { font-size: 1.5rem; color: var(--text); margin-bottom: 0.5rem; }
+  .scenario .goal { color: var(--muted); font-style: italic; margin-bottom: 1.25rem; font-size: 0.95rem; }
+
+  .section { margin-top: 1.5rem; }
+  .section h4 {
+    font-size: 0.8rem;
+    color: var(--purple);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .section h4::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--purple);
+    border-radius: 50%;
+  }
+
+  .steps { list-style: none; counter-reset: step; }
+  .steps li {
+    counter-increment: step;
+    padding: 0.5rem 0 0.5rem 2.5rem;
+    position: relative;
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0.4rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    font-family: monospace;
+  }
+
+  .code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.82rem;
+    color: var(--green);
+    overflow-x: auto;
+    margin-top: 0.5rem;
+    line-height: 1.6;
+  }
+  .code .key { color: var(--accent); }
+  .code .str { color: var(--yellow); }
+  .code .comment { color: var(--muted); font-style: italic; }
+  .code .method { color: var(--blue); font-weight: 600; }
+
+  .expected {
+    background: rgba(74, 222, 128, 0.08);
+    border-left: 3px solid var(--green);
+    padding: 0.75rem 1rem;
+    border-radius: 0 8px 8px 0;
+    margin-top: 0.5rem;
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+  .expected strong { color: var(--green); }
+
+  .tag {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 0.5rem;
+  }
+  .tag-rest { background: rgba(251, 146, 60, 0.15); color: var(--accent); }
+  .tag-fe   { background: rgba(74, 222, 128, 0.15); color: var(--green); }
+  .tag-java { background: rgba(167, 139, 250, 0.15); color: var(--purple); }
+
+  code.inline {
+    background: var(--surface2);
+    color: var(--yellow);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Cascadia Code', monospace;
+    font-size: 0.85rem;
+  }
+
+  .setup {
+    background: linear-gradient(135deg, rgba(251, 146, 60, 0.08), rgba(167, 139, 250, 0.08));
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 3rem;
+  }
+  .setup h3 { color: var(--accent); margin-bottom: 0.75rem; }
+  .setup ul { list-style: none; }
+  .setup ul li {
+    padding: 0.3rem 0 0.3rem 1.5rem;
+    color: var(--muted);
+    position: relative;
+  }
+  .setup ul li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 1rem; }
+    .scenario { padding: 1.25rem 1.5rem; }
+    header h1 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Netty-SocketIO Demo Scenario</h1>
+    <p class="subtitle">Kịch bản demo real-time notification embedded trong Spring Boot</p>
+    <p class="meta">OneSubs Admin · Socket.IO protocol · 2026-04-07</p>
+  </header>
+
+  <!-- Setup -->
+  <div class="setup">
+    <h3>🛠️ Chuẩn bị trước khi demo</h3>
+    <ul>
+      <li>Spring Boot + Netty-SocketIO running: <code class="inline">cd demo-netty-socketio && ./gradlew bootRun</code></li>
+      <li>Verify logs: <code class="inline">[netty-socketio] started on 0.0.0.0:9092</code> + <code class="inline">Tomcat started on port 8080</code></li>
+      <li>Tab 1 (Alice): mở <code class="inline">frontend/index.html</code> → User ID <code class="inline">alice</code> → Connect</li>
+      <li>Tab 2 (Bob): mở thêm tab → User ID <code class="inline">bob</code> → Connect</li>
+      <li>Tab 3 (Carol): mở thêm tab → User ID <code class="inline">carol</code> → Connect</li>
+      <li>Mở Postman / Git Bash / PowerShell sẵn để publish qua REST</li>
+    </ul>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>📋 Kịch bản</h3>
+    <ol>
+      <li><a href="#s1">Publish — Phát message vào 1 room cụ thể</a></li>
+      <li><a href="#s2">Broadcast — Phát cùng message vào nhiều rooms</a></li>
+      <li><a href="#s3">Broadcast All — Phát cho tất cả clients</a></li>
+      <li><a href="#s4">Stats — Đếm clients & rooms đang active</a></li>
+      <li><a href="#s5">Isolation — Verify room-based filtering</a></li>
+      <li><a href="#s6">In-process Publish — Inject bean từ Spring service</a></li>
+      <li><a href="#s7">Handshake Auth — Reject connection thiếu userId</a></li>
+    </ol>
+  </div>
+
+  <!-- Scenario 1 -->
+  <div class="scenario" id="s1">
+    <span class="number">SCENARIO 01</span>
+    <h2>Publish — Phát vào 1 room <span class="tag tag-rest">POST /api/publish</span></h2>
+    <p class="goal">Mô phỏng: Đơn hàng mới → phát vào room <code class="inline">user#alice</code>. Chỉ Alice nhận.</p>
+
+    <div class="section">
+      <h4>Request</h4>
+      <div class="code"><span class="method">POST</span> http://localhost:8080/api/publish
+Content-Type: application/json
+
+{
+  <span class="key">"room"</span>: <span class="str">"user#alice"</span>,
+  <span class="key">"event"</span>: <span class="str">"notification"</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"title"</span>: <span class="str">"🎉 Đơn hàng mới #ORD-001"</span>,
+    <span class="key">"body"</span>: <span class="str">"Khách Nguyễn Văn A đặt gói Premium 12 tháng"</span>,
+    <span class="key">"level"</span>: <span class="str">"success"</span>
+  }
+}</div>
+    </div>
+
+    <div class="section">
+      <h4>curl (Git Bash / Linux)</h4>
+      <div class="code">curl -X <span class="method">POST</span> http://localhost:8080/api/publish \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"room":"user#alice","event":"notification","data":{"title":"🎉 Đơn mới","body":"Khách A vừa đặt","level":"success"}}'</span></div>
+    </div>
+
+    <div class="section">
+      <h4>PowerShell (Windows)</h4>
+      <div class="code">Invoke-RestMethod -Uri http://localhost:8080/api/publish `
+  -Method <span class="method">Post</span> `
+  -ContentType <span class="str">"application/json"</span> `
+  -Body <span class="str">'{"room":"user#alice","event":"notification","data":{"title":"🎉","body":"Test"}}'</span></div>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi <span class="tag tag-fe">FE</span></h4>
+      <div class="expected">
+        <strong>✓</strong> Chỉ Tab Alice hiện toast + entry mới. Tab Bob, Carol im lặng. Counter Alice +1.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 2 -->
+  <div class="scenario" id="s2">
+    <span class="number">SCENARIO 02</span>
+    <h2>Broadcast — Phát vào nhiều rooms <span class="tag tag-rest">POST /api/broadcast</span></h2>
+    <p class="goal">Mô phỏng: Thông báo maintenance — 1 API call phát vào 2 rooms, Carol không nhận.</p>
+
+    <div class="section">
+      <h4>Request</h4>
+      <div class="code"><span class="method">POST</span> http://localhost:8080/api/broadcast
+
+{
+  <span class="key">"rooms"</span>: [<span class="str">"user#alice"</span>, <span class="str">"user#bob"</span>],
+  <span class="key">"event"</span>: <span class="str">"notification"</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"title"</span>: <span class="str">"⚠️ Bảo trì hệ thống"</span>,
+    <span class="key">"body"</span>: <span class="str">"22:00 - 22:30 tối nay"</span>,
+    <span class="key">"level"</span>: <span class="str">"warning"</span>
+  }
+}</div>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi</h4>
+      <div class="expected">
+        <strong>✓</strong> Tab Alice + Bob nhận cùng lúc. Tab Carol <strong>không</strong> nhận.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 3 -->
+  <div class="scenario" id="s3">
+    <span class="number">SCENARIO 03</span>
+    <h2>Broadcast All — Phát cho tất cả <span class="tag tag-rest">POST /api/broadcast-all</span></h2>
+    <p class="goal">Mô phỏng: Emergency alert — mọi client đang connect đều nhận, không filter room.</p>
+
+    <div class="section">
+      <h4>Request</h4>
+      <div class="code"><span class="method">POST</span> http://localhost:8080/api/broadcast-all
+
+{
+  <span class="key">"event"</span>: <span class="str">"notification"</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"title"</span>: <span class="str">"🚨 Hệ thống gặp sự cố"</span>,
+    <span class="key">"body"</span>: <span class="str">"Vui lòng dừng thao tác"</span>,
+    <span class="key">"level"</span>: <span class="str">"error"</span>
+  }
+}</div>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi</h4>
+      <div class="expected">
+        <strong>✓</strong> Cả 3 tab Alice + Bob + Carol đều nhận toast đỏ.
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Điểm nhấn <span class="tag tag-java">Java</span></h4>
+      <div class="expected" style="border-left-color: var(--yellow); background: rgba(251, 191, 36, 0.08);">
+        ⚡ Dưới capo gọi <code class="inline">server.getBroadcastOperations().sendEvent(...)</code>. 0ms overhead vì inject bean trực tiếp.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 4 -->
+  <div class="scenario" id="s4">
+    <span class="number">SCENARIO 04</span>
+    <h2>Stats — Server snapshot <span class="tag tag-rest">GET /api/stats</span></h2>
+    <p class="goal">Mô phỏng: Monitoring endpoint — đếm clients & rooms đang active.</p>
+
+    <div class="section">
+      <h4>Request</h4>
+      <div class="code"><span class="method">GET</span> http://localhost:8080/api/stats</div>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi</h4>
+      <div class="code">{
+  <span class="key">"totalClients"</span>: <span class="str">3</span>,
+  <span class="key">"activeRooms"</span>: [<span class="str">"user#alice"</span>, <span class="str">"user#bob"</span>, <span class="str">"user#carol"</span>]
+}</div>
+    </div>
+
+    <div class="section">
+      <h4>Test nâng cao</h4>
+      <ol class="steps">
+        <li>Đóng tab Carol → GET lại <code class="inline">/api/stats</code></li>
+        <li><code class="inline">totalClients: 2</code> và <code class="inline">activeRooms</code> không còn <code class="inline">user#carol</code></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Scenario 5 -->
+  <div class="scenario" id="s5">
+    <span class="number">SCENARIO 05</span>
+    <h2>Isolation — Room-based filtering</h2>
+    <p class="goal">Chứng minh: phát vào room X → chỉ client trong room X nhận. Đây là core value của room-based model.</p>
+
+    <div class="section">
+      <h4>Các bước</h4>
+      <ol class="steps">
+        <li>Publish vào <code class="inline">user#alice</code> → chỉ Alice nhận</li>
+        <li>Publish vào <code class="inline">user#bob</code> → chỉ Bob nhận</li>
+        <li>Publish vào <code class="inline">user#ghost</code> (không ai subscribe) → không ai nhận, không error</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h4>Điểm nhấn</h4>
+      <div class="expected" style="border-left-color: var(--yellow); background: rgba(251, 191, 36, 0.08);">
+        ⚡ Message phát vào room trống → <strong>mất luôn</strong>. Netty-SocketIO <strong>không có history buffer</strong> như Centrifugo. Muốn persist phải lưu DB riêng.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 6 -->
+  <div class="scenario" id="s6">
+    <span class="number">SCENARIO 06</span>
+    <h2>In-process Publish — Inject bean trong Spring service <span class="tag tag-java">Java</span></h2>
+    <p class="goal">Lợi thế lớn nhất so với Centrifugo: Không cần HTTP call, inject <code class="inline">NotificationPublisher</code> thẳng vào service domain.</p>
+
+    <div class="section">
+      <h4>Code example</h4>
+      <div class="code"><span class="comment">// OrderService.java</span>
+@Service
+@RequiredArgsConstructor
+<span class="method">public class</span> OrderService {
+
+    <span class="method">private final</span> NotificationPublisher publisher;  <span class="comment">// inject trực tiếp</span>
+    <span class="method">private final</span> OrderRepository orderRepo;
+
+    <span class="method">public void</span> createOrder(CreateOrderRequest req) {
+        Order order = orderRepo.save(<span class="method">new</span> Order(req));
+
+        <span class="comment">// Cùng transaction context với domain event, 0 HTTP overhead</span>
+        publisher.publishToRoom(
+            <span class="str">"user#"</span> + order.getAssignedSaleId(),
+            <span class="str">"notification"</span>,
+            Map.of(
+                <span class="str">"title"</span>, <span class="str">"Đơn mới #"</span> + order.getId(),
+                <span class="str">"body"</span>, order.getCustomerName(),
+                <span class="str">"level"</span>, <span class="str">"success"</span>
+            )
+        );
+    }
+}</div>
+    </div>
+
+    <div class="section">
+      <h4>So sánh với Centrifugo</h4>
+      <div style="overflow-x: auto; border-radius: 8px; border: 1px solid var(--border);">
+        <table style="width:100%; border-collapse: collapse; font-size: 0.85rem;">
+          <thead>
+            <tr style="background: var(--surface2);">
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Aspect</th>
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Centrifugo</th>
+              <th style="padding:0.6rem 0.9rem; text-align:left; color: var(--text);">Netty-SocketIO</th>
+            </tr>
+          </thead>
+          <tbody style="color: var(--muted);">
+            <tr>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Publish call</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">HTTP POST → :8000</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--green);">Method call in-process</td>
+            </tr>
+            <tr style="background: rgba(30,41,59,0.4);">
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Latency</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">~1-5ms</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--green);">~0ms</td>
+            </tr>
+            <tr>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Transaction context</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Tách rời</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--green);">Cùng thread + tx</td>
+            </tr>
+            <tr style="background: rgba(30,41,59,0.4);">
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Debug</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border);">Logs 2 services</td>
+              <td style="padding:0.5rem 0.9rem; border-top:1px solid var(--border); color: var(--green);">Breakpoint IDE</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario 7 -->
+  <div class="scenario" id="s7">
+    <span class="number">SCENARIO 07</span>
+    <h2>Handshake Auth — Reject thiếu userId</h2>
+    <p class="goal">Chứng minh: <code class="inline">AuthorizationListener</code> từ chối connection không có userId query param.</p>
+
+    <div class="section">
+      <h4>Test negative case</h4>
+      <ol class="steps">
+        <li>Mở tab mới <code class="inline">index.html</code></li>
+        <li>Xóa trống field User ID</li>
+        <li>Click Connect</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h4>Kết quả mong đợi</h4>
+      <div class="expected">
+        <strong>✓</strong> FE: status hiện "Error: ..." / Disconnected ngay<br>
+        <strong>✓</strong> Server log: <code class="inline">[handshake] rejected — missing userId</code>
+      </div>
+    </div>
+
+    <div class="section">
+      <h4>Code reference <span class="tag tag-java">SocketIoConfig.java</span></h4>
+      <div class="code">cfg.setAuthorizationListener(data -> {
+    String userId = data.getSingleUrlParam(<span class="str">"userId"</span>);
+    <span class="method">if</span> (userId == <span class="method">null</span> || userId.isBlank()) {
+        <span class="method">return</span> AuthorizationResult.FAILED_AUTHORIZATION;
+    }
+    <span class="method">return</span> AuthorizationResult.SUCCESSFUL_AUTHORIZATION;
+});</div>
+    </div>
+
+    <div class="section">
+      <h4>Upgrade path → JWT</h4>
+      <div class="expected" style="border-left-color: var(--purple); background: rgba(167, 139, 250, 0.08);">
+        💡 Production: thay query param bằng JWT. Parse <code class="inline">data.getSingleUrlParam("token")</code>, verify HS256 với shared secret, extract <code class="inline">sub</code> → làm userId.
+      </div>
+    </div>
+  </div>
+
+  <!-- Wrap up -->
+  <div class="scenario" style="border-color: var(--green);">
+    <span class="number" style="color: var(--green);">WRAP UP</span>
+    <h2>🎯 Tổng kết demo</h2>
+    <div class="section">
+      <h4>Những gì đã show</h4>
+      <ol class="steps">
+        <li><strong>In-process integration</strong> — inject SocketIOServer bean, 0ms overhead</li>
+        <li><strong>Room-based filtering</strong> — publish chính xác đến 1 hoặc nhiều rooms</li>
+        <li><strong>Broadcast all</strong> — emergency alert tất cả clients</li>
+        <li><strong>REST wrapper</strong> — Spring controller expose `/api/publish` cho external test</li>
+        <li><strong>Handshake auth</strong> — reject connection không hợp lệ ở tầng WS</li>
+        <li><strong>Cùng stack Java</strong> — debug/log/profile chung với Spring Boot</li>
+      </ol>
+    </div>
+    <div class="section">
+      <h4>Ưu điểm so với Centrifugo</h4>
+      <div class="expected">
+        ✅ <strong>Zero ops overhead</strong> — 1 JAR, không thêm container<br>
+        ✅ <strong>Cùng transaction context</strong> — publish sau khi DB commit thành công<br>
+        ✅ <strong>Socket.IO ecosystem</strong> — client library ~62K stars, đa platform (web/iOS/Android)<br>
+        ✅ <strong>Debug dễ</strong> — breakpoint IDE bắt được luồng từ controller → publisher → emit
+      </div>
+    </div>
+    <div class="section">
+      <h4>Nhược điểm so với Centrifugo</h4>
+      <div class="expected" style="border-left-color: var(--red); background: rgba(248, 113, 113, 0.08);">
+        ❌ <strong>Không có Admin UI</strong> — phải self-build dashboard<br>
+        ❌ <strong>Không có presence/history built-in</strong> — tự implement với Redis hoặc DB<br>
+        ❌ <strong>Port riêng (9092)</strong> — FE phải config 2 endpoints (HTTP 8080 + WS 9092)<br>
+        ❌ <strong>Scale dính với app</strong> — không tách independent scaling như Centrifugo
+      </div>
+    </div>
+    <div class="section">
+      <h4>Kết luận cho OneSubs</h4>
+      <div class="expected" style="border-left-color: var(--accent); background: rgba(251, 146, 60, 0.08);">
+        📍 <strong>Phase 1-2:</strong> Spring WebSocket + STOMP vẫn đơn giản nhất cho monolith (xem comparison report)<br>
+        📍 <strong>Phase 3:</strong> Nếu cần tách scale + giữ Java stack → <strong>Netty-SocketIO standalone JAR</strong><br>
+        📍 <strong>Phase 3 alt:</strong> Nếu cần features (presence/history/admin UI) → <strong>Centrifugo Docker</strong>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    OneSubs Admin — Netty-SocketIO Demo Scenario | 2026-04-07
+  </footer>
+
+</div>
+</body>
+</html>

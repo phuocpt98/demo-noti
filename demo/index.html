@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Centrifugo Notification Demo</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: #475569;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --green: #4ade80;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --purple: #a78bfa;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    header { margin-bottom: 2rem; }
+    h1 {
+      font-size: 1.75rem;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .meta { color: var(--muted); font-size: 0.875rem; margin-top: 0.25rem; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .panel h2 {
+      font-size: 1rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .form-row label {
+      width: 100px;
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+    .form-row input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      color: var(--text);
+      font-family: 'Cascadia Code', monospace;
+      font-size: 0.85rem;
+    }
+    .form-row input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    button {
+      padding: 0.5rem 1.25rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    button:hover:not(:disabled) { transform: translateY(-1px); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-connect { background: var(--green); color: #0f172a; }
+    .btn-disconnect { background: var(--red); color: #fff; }
+    .btn-clear { background: var(--surface2); color: var(--text); }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      box-shadow: 0 0 8px currentColor;
+    }
+    .status-dot.connected { background: var(--green); animation: pulse 2s infinite; }
+    .status-dot.connecting { background: var(--yellow); }
+    .status-dot.error { background: var(--red); }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .status-text { font-size: 0.875rem; color: var(--muted); }
+    .status-text strong { color: var(--text); }
+
+    /* Notification list */
+    .noti-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .noti-empty {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .noti-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      animation: slideIn 0.3s ease;
+    }
+    .noti-item.level-info { border-left-color: var(--accent); }
+    .noti-item.level-success { border-left-color: var(--green); }
+    .noti-item.level-warning { border-left-color: var(--yellow); }
+    .noti-item.level-error { border-left-color: var(--red); }
+    .noti-item .title {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+    .noti-item .body { color: var(--muted); font-size: 0.875rem; }
+    .noti-item .time {
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-top: 0.5rem;
+      font-family: monospace;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Toast container */
+    .toast-container {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 1000;
+      max-width: 360px;
+    }
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 0.875rem 1rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      animation: toastIn 0.3s ease;
+    }
+    .toast.out { animation: toastOut 0.3s ease forwards; }
+    .toast .title { font-weight: 600; color: var(--text); }
+    .toast .body { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(100%); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateX(100%); }
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      background: var(--surface2);
+      color: var(--text);
+      margin-left: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Centrifugo Notification Demo</h1>
+      <p class="meta">OneSubs Admin · WS Realtime PoC · 2026-04-07</p>
+    </header>
+
+    <!-- Connection panel -->
+    <div class="panel">
+      <h2>Connection</h2>
+      <div class="form-row">
+        <label>WS URL</label>
+        <input id="wsUrl" value="ws://localhost:8000/connection/websocket" />
+      </div>
+      <div class="form-row">
+        <label>User ID</label>
+        <input id="userId" value="user-123" />
+      </div>
+      <div class="form-row">
+        <label>Channel</label>
+        <input id="channel" value="notifications:user#123" />
+      </div>
+      <div class="form-row">
+        <label>HMAC Secret</label>
+        <input id="secret" value="demo-secret-key-change-me" />
+      </div>
+      <div class="form-row">
+        <label>JWT Token</label>
+        <input id="token" placeholder="Click 'Generate Token' →" />
+      </div>
+      <div class="actions">
+        <button id="btnGenToken" class="btn-clear">Generate Token</button>
+        <button id="btnConnect" class="btn-connect">Connect</button>
+        <button id="btnDisconnect" class="btn-disconnect" disabled>Disconnect</button>
+      </div>
+      <div class="status-row">
+        <div id="statusDot" class="status-dot"></div>
+        <div class="status-text">
+          Status: <strong id="statusText">Disconnected</strong>
+          <span id="receivedCount" class="badge">0 received</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications panel -->
+    <div class="panel">
+      <h2>
+        Received Notifications
+        <button id="btnClear" class="btn-clear" style="float:right; font-size:0.75rem; padding:0.25rem 0.75rem;">Clear</button>
+      </h2>
+      <div id="notiList" class="noti-list">
+        <div class="noti-empty">Chưa có notification nào. Hãy chạy <code>publish-notification.sh</code> để test.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- centrifuge-js via CDN (jsdelivr) -->
+  <script src="https://cdn.jsdelivr.net/npm/centrifuge@5.2.2/dist/centrifuge.js"></script>
+  <script>
+    // ==============================
+    // Centrifugo Notification Demo
+    // ==============================
+    const el = (id) => document.getElementById(id);
+    const state = { centrifuge: null, sub: null, count: 0 };
+
+    // ---------- UI helpers ----------
+    function setStatus(text, variant) {
+      el('statusText').textContent = text;
+      const dot = el('statusDot');
+      dot.className = 'status-dot' + (variant ? ' ' + variant : '');
+    }
+
+    function setButtons(connected) {
+      el('btnConnect').disabled = connected;
+      el('btnDisconnect').disabled = !connected;
+      ['wsUrl', 'userId', 'channel', 'secret', 'token'].forEach((id) => {
+        el(id).disabled = connected;
+      });
+      el('btnGenToken').disabled = connected;
+    }
+
+    // Render a notification in the list (newest on top).
+    function renderNoti(data) {
+      state.count += 1;
+      el('receivedCount').textContent = `${state.count} received`;
+
+      const list = el('notiList');
+      const empty = list.querySelector('.noti-empty');
+      if (empty) empty.remove();
+
+      const item = document.createElement('div');
+      const level = data.level || 'info';
+      item.className = `noti-item level-${level}`;
+      item.innerHTML = `
+        <div class="title">${escapeHtml(data.title || '(no title)')}</div>
+        <div class="body">${escapeHtml(data.body || '')}</div>
+        <div class="time">${new Date().toLocaleTimeString()}</div>
+      `;
+      list.insertBefore(item, list.firstChild);
+    }
+
+    // Show a floating toast that auto-dismisses after 4s.
+    function showToast(data) {
+      const container = el('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `
+        <div class="title">${escapeHtml(data.title || 'Notification')}</div>
+        <div class="body">${escapeHtml(data.body || '')}</div>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('out');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ---------- Centrifuge lifecycle ----------
+    function connect() {
+      const url = el('wsUrl').value.trim();
+      const token = el('token').value.trim();
+      const channel = el('channel').value.trim();
+
+      if (!token) {
+        alert('Vui lòng nhập JWT token (chạy: node generate-token.js)');
+        return;
+      }
+
+      setStatus('Connecting...', 'connecting');
+
+      const centrifuge = new Centrifuge(url, { token });
+
+      centrifuge.on('connecting', (ctx) => {
+        console.log('[centrifuge] connecting', ctx);
+        setStatus('Connecting...', 'connecting');
+      });
+      centrifuge.on('connected', (ctx) => {
+        console.log('[centrifuge] connected', ctx);
+        setStatus('Connected', 'connected');
+        setButtons(true);
+      });
+      centrifuge.on('disconnected', (ctx) => {
+        console.log('[centrifuge] disconnected', ctx);
+        setStatus(`Disconnected: ${ctx.reason || 'unknown'}`, '');
+        setButtons(false);
+      });
+      centrifuge.on('error', (ctx) => {
+        console.error('[centrifuge] error', ctx);
+        setStatus(`Error: ${ctx.error?.message || 'unknown'}`, 'error');
+      });
+
+      // Subscribe to the user-specific notification channel.
+      const sub = centrifuge.newSubscription(channel);
+      sub.on('publication', (ctx) => {
+        console.log('[noti] publication', ctx.data);
+        renderNoti(ctx.data);
+        showToast(ctx.data);
+      });
+      sub.on('subscribed', () => console.log('[noti] subscribed to', channel));
+      sub.on('error', (ctx) => console.error('[noti] sub error', ctx));
+      sub.subscribe();
+
+      centrifuge.connect();
+      state.centrifuge = centrifuge;
+      state.sub = sub;
+    }
+
+    function disconnect() {
+      if (state.sub) { state.sub.unsubscribe(); state.sub = null; }
+      if (state.centrifuge) { state.centrifuge.disconnect(); state.centrifuge = null; }
+      setButtons(false);
+      setStatus('Disconnected', '');
+    }
+
+    function clearList() {
+      state.count = 0;
+      el('receivedCount').textContent = '0 received';
+      el('notiList').innerHTML = '<div class="noti-empty">Chưa có notification nào.</div>';
+    }
+
+    // ---------- JWT generation (Web Crypto HS256) ----------
+    // Generate a Centrifugo-compatible JWT entirely in browser.
+    // Must match `token_hmac_secret_key` in config.json.
+    function b64urlFromBytes(bytes) {
+      let bin = '';
+      bytes.forEach((b) => (bin += String.fromCharCode(b)));
+      return btoa(bin).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    }
+    function b64urlFromString(str) {
+      return b64urlFromBytes(new TextEncoder().encode(str));
+    }
+
+    async function generateToken() {
+      const userId = el('userId').value.trim();
+      const secret = el('secret').value.trim();
+      if (!userId || !secret) {
+        alert('Vui lòng nhập User ID và Secret');
+        return;
+      }
+      const header = { alg: 'HS256', typ: 'JWT' };
+      const payload = {
+        sub: userId,
+        exp: Math.floor(Date.now() / 1000) + 24 * 3600, // 24h
+      };
+      const signingInput = `${b64urlFromString(JSON.stringify(header))}.${b64urlFromString(JSON.stringify(payload))}`;
+
+      const key = await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signingInput));
+      const signature = b64urlFromBytes(new Uint8Array(sigBuf));
+
+      const token = `${signingInput}.${signature}`;
+      el('token').value = token;
+      console.log(`[jwt] generated for ${userId}`);
+    }
+
+    // ---------- Bindings ----------
+    el('btnGenToken').addEventListener('click', generateToken);
+    el('btnConnect').addEventListener('click', connect);
+    el('btnDisconnect').addEventListener('click', disconnect);
+    el('btnClear').addEventListener('click', clearList);
+
+    // Auto-sync channel when userId changes (before connect).
+    el('userId').addEventListener('input', (e) => {
+      const ch = el('channel');
+      // Only auto-update if channel still matches the default pattern.
+      if (/^notifications:user#/.test(ch.value)) {
+        const id = e.target.value.replace(/^user-?/, '');
+        ch.value = `notifications:user#${id}`;
+      }
+    });
+  </script>
+</body>
+</html>

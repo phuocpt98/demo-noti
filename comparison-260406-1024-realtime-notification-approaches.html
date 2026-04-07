@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Notification — So sánh phương án</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface2: #334155;
+            --border: #475569;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --green: #4ade80;
+            --red: #f87171;
+            --yellow: #fbbf24;
+            --purple: #a78bfa;
+            --orange: #fb923c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header .meta {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            color: var(--accent);
+            margin: 2.5rem 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h2 .badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            color: var(--text);
+            margin: 1.5rem 0 0.75rem;
+        }
+
+        p, li { color: var(--text-muted); font-size: 0.95rem; }
+
+        /* Decision Box */
+        .decision-box {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(167, 139, 250, 0.1));
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            margin: 2rem 0;
+        }
+
+        .decision-box h3 {
+            color: var(--accent);
+            margin-top: 0;
+        }
+
+        .decision-box .winner {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--green);
+        }
+
+        /* Architecture Diagram */
+        .arch-diagram {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: pre;
+            color: var(--text-muted);
+            line-height: 1.8;
+        }
+
+        .arch-diagram .highlight { color: var(--accent); font-weight: 600; }
+        .arch-diagram .green { color: var(--green); }
+        .arch-diagram .yellow { color: var(--yellow); }
+        .arch-diagram .purple { color: var(--purple); }
+
+        /* Comparison Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 1rem 0 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        thead th {
+            background: var(--surface2);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        thead th:first-child { border-radius: 11px 0 0 0; }
+        thead th:last-child { border-radius: 0 11px 0 0; }
+
+        tbody td {
+            padding: 0.65rem 1rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            vertical-align: top;
+        }
+
+        tbody tr:hover { background: rgba(56, 189, 248, 0.05); }
+
+        tbody tr:nth-child(even) { background: rgba(30, 41, 59, 0.5); }
+        tbody tr:nth-child(even):hover { background: rgba(56, 189, 248, 0.08); }
+
+        .tag {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .tag-green { background: rgba(74, 222, 128, 0.15); color: var(--green); }
+        .tag-red { background: rgba(248, 113, 113, 0.15); color: var(--red); }
+        .tag-yellow { background: rgba(251, 191, 36, 0.15); color: var(--yellow); }
+        .tag-blue { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
+        .tag-purple { background: rgba(167, 139, 250, 0.15); color: var(--purple); }
+        .tag-orange { background: rgba(251, 146, 60, 0.15); color: var(--orange); }
+
+        .rec { color: var(--green); font-weight: 600; }
+        .not-rec { color: var(--red); }
+
+        /* Score bars */
+        .score-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .score-bar .bar {
+            height: 8px;
+            border-radius: 4px;
+            background: var(--surface2);
+            flex: 1;
+            max-width: 100px;
+            overflow: hidden;
+        }
+
+        .score-bar .bar .fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .fill-green { background: var(--green); }
+        .fill-yellow { background: var(--yellow); }
+        .fill-red { background: var(--red); }
+        .fill-blue { background: var(--accent); }
+
+        /* Cards Grid */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1.25rem;
+            margin: 1.5rem 0;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+        }
+
+        .card h4 {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .card ul li {
+            padding: 0.25rem 0;
+            padding-left: 1.2rem;
+            position: relative;
+        }
+
+        .card ul li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.65rem;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .card.pro ul li::before { background: var(--green); }
+        .card.con ul li::before { background: var(--red); }
+
+        /* Section separator */
+        .section-sep {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 3rem 0;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            header h1 { font-size: 1.5rem; }
+            .cards { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <header>
+            <h1>Real-time Notification BE → FE</h1>
+            <p class="meta">OneSubs Admin | OS-125 | 2026-04-06 | Branch: OS-125</p>
+            <p class="meta">Stack: Spring Boot 3.x · Redis · React + Vite + TypeScript</p>
+        </header>
+
+        <!-- ==================== PHẦN 1 ==================== -->
+        <h2>1. Library (in-process) vs Microservice (external)</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tiêu chí</th>
+                        <th>Library (trong monolith)</th>
+                        <th>Microservice (process riêng)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Kiến trúc</strong></td>
+                        <td>Thêm Gradle module mới<br><span class="tag tag-green">phù hợp monolith hiện tại</span></td>
+                        <td>Process/container riêng biệt<br><span class="tag tag-yellow">phải setup infra mới</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Deploy</strong></td>
+                        <td>1 JAR duy nhất, không thay đổi</td>
+                        <td>2 deployments, CI/CD pipeline mới</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Communication</strong></td>
+                        <td>In-process method call (0ms latency)</td>
+                        <td>HTTP/gRPC giữa services (1-5ms latency)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Authentication</strong></td>
+                        <td>Dùng chung Spring Security</td>
+                        <td>JWT proxy hoặc auth riêng</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Domain Events</strong></td>
+                        <td>Subscribe trực tiếp, cùng transaction context</td>
+                        <td>Cần message queue/HTTP callback</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Scaling</strong></td>
+                        <td>Scale cả app cùng lúc</td>
+                        <td>Scale WS server độc lập</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ops Overhead</strong></td>
+                        <td><span class="tag tag-green">Không có</span></td>
+                        <td><span class="tag tag-red">Monitor, upgrade, config riêng</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Complexity</strong></td>
+                        <td><span class="tag tag-green">Thấp</span></td>
+                        <td><span class="tag tag-red">Cao</span> — service discovery, health check, network</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Phù hợp khi</strong></td>
+                        <td>≤500 connections, team nhỏ, monolith</td>
+                        <td>>1000 connections, team lớn, microservices</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="decision-box">
+            <h3>Kết luận: Library hay Microservice?</h3>
+            <p class="winner">→ Library (trong monolith)</p>
+            <p style="margin-top:0.5rem">OneSubs Admin là monolith, ít user (Admin/Sale/Tech ≈ vài chục connections). Tách microservice tạo complexity không cần thiết. Khi nào scale thực sự cần thì refactor library → microservice không khó.</p>
+        </div>
+
+        <div class="section-sep"></div>
+
+        <!-- ==================== PHẦN 2 ==================== -->
+        <h2>2. Nếu chọn Library — dùng công nghệ nào?</h2>
+        <p>So sánh 3 cách push notification từ BE tới FE khi build trong cùng monolith.</p>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tiêu chí</th>
+                        <th>Spring WebSocket + STOMP</th>
+                        <th>SSE (Server-Sent Events)</th>
+                        <th>Short Polling (HTTP)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Giao thức</strong></td>
+                        <td>WebSocket (full-duplex)</td>
+                        <td>HTTP streaming (one-way)</td>
+                        <td>HTTP request/response</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Realtime</strong></td>
+                        <td><span class="tag tag-green">Instant</span></td>
+                        <td><span class="tag tag-green">Gần instant</span></td>
+                        <td><span class="tag tag-yellow">Delay 5-10s</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Two-way</strong></td>
+                        <td><span class="tag tag-green">Có</span> — FE gửi/nhận</td>
+                        <td><span class="tag tag-red">Không</span> — chỉ server → client</td>
+                        <td><span class="tag tag-red">Không</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dependency</strong></td>
+                        <td><code>spring-boot-starter-websocket</code></td>
+                        <td>Không cần — Spring Web đã có <code>SseEmitter</code></td>
+                        <td>Không cần</td>
+                    </tr>
+                    <tr>
+                        <td><strong>FE Library</strong></td>
+                        <td><code>@stomp/stompjs</code> (~15KB)</td>
+                        <td>Native <code>EventSource</code></td>
+                        <td><code>fetch</code> + <code>setInterval</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Topic/Room</strong></td>
+                        <td><span class="tag tag-green">Có sẵn</span> — <code>/topic/*</code>, <code>/user/queue/*</code></td>
+                        <td><span class="tag tag-yellow">Tự implement</span></td>
+                        <td>Không áp dụng</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Auth</strong></td>
+                        <td>STOMP CONNECT header + Spring Security</td>
+                        <td>Bất tiện — <code>EventSource</code> không hỗ trợ custom header</td>
+                        <td>JWT header — dễ nhất</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Auto Reconnect</strong></td>
+                        <td>STOMP client có sẵn</td>
+                        <td>Browser tự reconnect</td>
+                        <td>Không cần</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Multi-instance</strong></td>
+                        <td>Redis <code>StompBrokerRelay</code></td>
+                        <td>Redis Pub/Sub (tự implement)</td>
+                        <td>Stateless — tự scale</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Mở rộng → Chat</strong></td>
+                        <td><span class="tag tag-green">Sẵn sàng</span> — two-way có sẵn</td>
+                        <td><span class="tag tag-red">Không thể</span> — phải chuyển sang WS</td>
+                        <td><span class="tag tag-red">Không thể</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Complexity</strong></td>
+                        <td><span class="tag tag-yellow">Trung bình</span> ~10-15 files</td>
+                        <td><span class="tag tag-green">Thấp</span> ~5-8 files</td>
+                        <td><span class="tag tag-green">Rất thấp</span> ~3 files</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Phù hợp</strong></td>
+                        <td>Notification + Chat tương lai</td>
+                        <td>Notification one-way only</td>
+                        <td>MVP nhanh, ít user</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Score visualization -->
+        <h3>Điểm đánh giá (theo ngữ cảnh OneSubs)</h3>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:200px"></th>
+                        <th>Realtime</th>
+                        <th>Simplicity</th>
+                        <th>Extensibility</th>
+                        <th>Auth</th>
+                        <th>Tổng</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Spring WebSocket + STOMP</strong></td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:100%"></div></div> 10</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-yellow" style="width:70%"></div></div> 7</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:100%"></div></div> 10</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:90%"></div></div> 9</div>
+                        </td>
+                        <td><strong class="rec">36/40</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>SSE</strong></td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:90%"></div></div> 9</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:90%"></div></div> 9</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-red" style="width:30%"></div></div> 3</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-yellow" style="width:50%"></div></div> 5</div>
+                        </td>
+                        <td>26/40</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Short Polling</strong></td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-red" style="width:30%"></div></div> 3</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:100%"></div></div> 10</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-red" style="width:20%"></div></div> 2</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:100%"></div></div> 10</div>
+                        </td>
+                        <td>25/40</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="decision-box">
+            <h3>Kết luận: Công nghệ nào cho Library?</h3>
+            <p class="winner">→ Spring WebSocket + STOMP</p>
+            <p style="margin-top:0.5rem">Roadmap Phase 2 đã có "Trò chuyện trực tiếp (WebSocket)" → chọn WS ngay từ đầu, tránh migrate SSE → WS sau. Topic/room có sẵn phù hợp role-based notification (Admin/Sale/Tech). Auth tích hợp Spring Security native.</p>
+        </div>
+
+        <div class="section-sep"></div>
+
+        <!-- ==================== PHẦN 3 ==================== -->
+        <h2>3. Nếu chọn Microservice — dùng open-source nào?</h2>
+        <p>4 open-source server cho real-time messaging — bao gồm 1 giải pháp Java (Netty-SocketIO) để so sánh cùng stack.</p>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tiêu chí</th>
+                        <th>Netty-SocketIO <span class="tag tag-orange">Java</span></th>
+                        <th>Centrifugo</th>
+                        <th>Soketi</th>
+                        <th>Mercure</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Ngôn ngữ</strong></td>
+                        <td><span class="tag tag-orange">Java</span> (Netty)</td>
+                        <td>Go</td>
+                        <td>Node.js (uWebSockets)</td>
+                        <td>Go</td>
+                    </tr>
+                    <tr>
+                        <td><strong>GitHub Stars</strong></td>
+                        <td><span class="tag tag-green">~6.7K</span></td>
+                        <td><span class="tag tag-green">~8.5K</span></td>
+                        <td><span class="tag tag-blue">~4.8K</span></td>
+                        <td><span class="tag tag-blue">~4K</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Protocol</strong></td>
+                        <td>Socket.IO protocol (WS + HTTP long-polling fallback)</td>
+                        <td>WebSocket + SSE + HTTP streaming</td>
+                        <td>Pusher protocol (WebSocket)</td>
+                        <td>SSE (Server-Sent Events)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>FE Client</strong></td>
+                        <td><code>socket.io-client</code> (~62K stars ecosystem)</td>
+                        <td><code>centrifuge-js</code> (official)</td>
+                        <td><code>pusher-js</code> (Pusher-compatible)</td>
+                        <td>Native <code>EventSource</code> hoặc <code>@mercure/sdk</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cách deploy</strong></td>
+                        <td>Embed trong Spring Boot JAR <strong>hoặc</strong> standalone JAR riêng</td>
+                        <td>Docker container riêng</td>
+                        <td>Docker container riêng</td>
+                        <td>Docker container riêng</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Port</strong></td>
+                        <td><span class="tag tag-yellow">Port riêng</span> (e.g. 9092) — không share port với Spring</td>
+                        <td>Port riêng (e.g. 8001)</td>
+                        <td>Port riêng (e.g. 6001)</td>
+                        <td>Port riêng (e.g. 3000)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>BE Integration</strong></td>
+                        <td>In-process Java API (inject trực tiếp) hoặc HTTP</td>
+                        <td>HTTP API hoặc gRPC proxy</td>
+                        <td>HTTP API (Pusher-compatible)</td>
+                        <td>HTTP POST với JWT</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Auth</strong></td>
+                        <td><span class="tag tag-yellow">Tự implement</span> — handshake listener, không tích hợp Spring Security</td>
+                        <td>JWT + connect proxy (BE validate)</td>
+                        <td>Pusher auth endpoint</td>
+                        <td>JWT (signed by BE)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Namespace/Room</strong></td>
+                        <td><span class="tag tag-green">Có</span> — Socket.IO namespace + room native</td>
+                        <td><span class="tag tag-green">Có</span> — channel + namespace + presence</td>
+                        <td><span class="tag tag-green">Có</span> — public/private/presence channels</td>
+                        <td><span class="tag tag-yellow">Topic-based</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Scalability</strong></td>
+                        <td><span class="tag tag-yellow">Trung bình</span> — Redis Pub/Sub adapter có sẵn</td>
+                        <td><span class="tag tag-green">Rất cao</span> — Redis/Nats/Tarantool</td>
+                        <td><span class="tag tag-green">Cao</span> — Redis adapter</td>
+                        <td><span class="tag tag-yellow">Trung bình</span> — Bolt/Redis</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Presence (online status)</strong></td>
+                        <td><span class="tag tag-yellow">Tự implement</span> — dùng room events</td>
+                        <td><span class="tag tag-green">Có</span></td>
+                        <td><span class="tag tag-green">Có</span></td>
+                        <td><span class="tag tag-red">Không</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Message History</strong></td>
+                        <td><span class="tag tag-red">Không</span> — tự lưu DB</td>
+                        <td><span class="tag tag-green">Có</span> — built-in recovery</td>
+                        <td><span class="tag tag-red">Không</span></td>
+                        <td><span class="tag tag-red">Không</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Admin UI</strong></td>
+                        <td><span class="tag tag-red">Không</span></td>
+                        <td><span class="tag tag-green">Có</span> — dashboard built-in</td>
+                        <td><span class="tag tag-yellow">Metrics only</span></td>
+                        <td><span class="tag tag-red">Không</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Docker Image</strong></td>
+                        <td>N/A (embed) hoặc ~200MB (JRE)</td>
+                        <td>~15MB (Go binary)</td>
+                        <td>~150MB (Node.js)</td>
+                        <td>~10MB (Go binary)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Connections/instance</strong></td>
+                        <td>~10-50K (Netty NIO)</td>
+                        <td>~100K+</td>
+                        <td>~10K</td>
+                        <td>~50K</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Two-way messaging</strong></td>
+                        <td><span class="tag tag-green">Có</span> — full Socket.IO events</td>
+                        <td><span class="tag tag-green">Có</span> — RPC + publish from client</td>
+                        <td><span class="tag tag-yellow">Client events only</span></td>
+                        <td><span class="tag tag-red">Không</span> — SSE only, one-way</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cùng stack Java</strong></td>
+                        <td><span class="tag tag-green">Có</span> — debug, profile, logging chung</td>
+                        <td><span class="tag tag-red">Không</span> — Go runtime riêng</td>
+                        <td><span class="tag tag-red">Không</span> — Node.js runtime riêng</td>
+                        <td><span class="tag tag-red">Không</span> — Go runtime riêng</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Documentation</strong></td>
+                        <td><span class="tag tag-yellow">Trung bình</span> — wiki + examples</td>
+                        <td><span class="tag tag-green">Rất tốt</span></td>
+                        <td><span class="tag tag-yellow">Tốt</span></td>
+                        <td><span class="tag tag-yellow">Tốt</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Maintenance</strong></td>
+                        <td><span class="tag tag-yellow">Moderate</span> — last release 2024</td>
+                        <td><span class="tag tag-green">Active</span> — Alexander Emelin</td>
+                        <td><span class="tag tag-yellow">Moderate</span></td>
+                        <td><span class="tag tag-green">Active</span> — Kévin Dunglas</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dependency</strong></td>
+                        <td><code>com.corundumstudio.socketio:netty-socketio:2.0.12</code></td>
+                        <td>Docker image</td>
+                        <td>Docker image</td>
+                        <td>Docker image</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Phù hợp</strong></td>
+                        <td>Team Java, muốn cùng stack, cần Socket.IO protocol</td>
+                        <td>Notification + Chat + Presence (mọi stack)</td>
+                        <td>Team đã quen Pusher ecosystem</td>
+                        <td>Notification one-way, simple setup</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Architecture diagrams for each -->
+        <h3>Kiến trúc tích hợp</h3>
+
+        <div class="arch-diagram"><span class="highlight">Netty-SocketIO (embed trong Spring Boot):</span>
+
+  <span class="green">FE (React)</span> ←── Socket.IO ──→ <span class="purple">Netty-SocketIO</span> (port 9092)
+                                           │
+                                    Cùng JVM process với Spring Boot (port 8008)
+                                           │
+                                    <span class="yellow">Spring Boot</span> inject SocketIOServer bean
+                                           │
+                                    server.getRoomOperations("order-123")
+                                          .sendEvent("notification", payload);
+
+<span class="highlight">Netty-SocketIO (standalone microservice):</span>
+
+  <span class="green">FE (React)</span> ←── Socket.IO ──→ <span class="purple">Netty-SocketIO JAR</span> (port 9092, process riêng)
+                                           ↑
+                                      Redis Pub/Sub
+                                           │
+                                    <span class="yellow">Spring Boot</span> (port 8008)
+                                           │
+                                    redisTemplate.publish("ws:notify", payload)
+
+<span class="highlight">Centrifugo / Soketi:</span>
+
+  <span class="green">FE (React)</span> ←── WebSocket ──→ <span class="purple">Centrifugo/Soketi</span> (port 8001)
+                                           ↑
+                                      HTTP API / gRPC
+                                           │
+                                    <span class="yellow">Spring Boot</span> (port 8008)
+                                           │
+                                    POST /api/publish
+                                    { channel: "user#123", data: {...} }
+
+<span class="highlight">Mercure:</span>
+
+  <span class="green">FE (React)</span> ←── SSE ──→ <span class="purple">Mercure Hub</span> (port 3000)
+                                    ↑
+                               HTTP POST + JWT
+                                    │
+                             <span class="yellow">Spring Boot</span> (port 8008)
+                                    │
+                             POST /.well-known/mercure
+                             topic=/notifications/user/123
+                             data={...}
+                             Authorization: Bearer &lt;publisher-jwt&gt;</div>
+
+        <div class="cards">
+            <div class="card pro">
+                <h4><span class="tag tag-orange">Netty-SocketIO</span> — Lợi thế Java cùng stack</h4>
+                <ul>
+                    <li>Cùng ngôn ngữ Java — debug, logging, profiling chung</li>
+                    <li>Có thể embed trong cùng JAR (không cần container riêng)</li>
+                    <li>Socket.IO ecosystem lớn nhất (~62K stars client)</li>
+                    <li>Namespace + Room native — tách concern dễ dàng</li>
+                    <li>Gradle dependency đơn giản, không cần Docker</li>
+                </ul>
+            </div>
+            <div class="card con">
+                <h4><span class="tag tag-orange">Netty-SocketIO</span> — Nhược điểm</h4>
+                <ul>
+                    <li>Chạy port riêng — FE phải connect 2 endpoint</li>
+                    <li>Không tích hợp Spring Security — tự handle auth</li>
+                    <li>Không có presence, history, admin UI built-in</li>
+                    <li>Maintenance moderate — không active như Centrifugo</li>
+                    <li>Embed cùng JVM = không scale WS độc lập</li>
+                </ul>
+            </div>
+            <div class="card pro">
+                <h4><span class="tag tag-green">Centrifugo</span> — Best overall cho microservice</h4>
+                <ul>
+                    <li>Feature đầy đủ nhất: presence, history, recovery</li>
+                    <li>Performance cao nhất (Go, 100K+ connections)</li>
+                    <li>Admin dashboard built-in</li>
+                    <li>Two-way messaging cho chat tương lai</li>
+                    <li>Docker image nhẹ (15MB), actively maintained</li>
+                </ul>
+            </div>
+            <div class="card con">
+                <h4><span class="tag tag-red">Nhược điểm chung Microservice</span></h4>
+                <ul>
+                    <li>Thêm container/process → ops overhead</li>
+                    <li>Network latency giữa Spring Boot → WS server</li>
+                    <li>Auth phải proxy qua BE hoặc shared JWT secret</li>
+                    <li>Domain events cần HTTP callback thay vì in-process</li>
+                    <li>CI/CD pipeline phức tạp hơn</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Microservice Score -->
+        <h3>Điểm đánh giá Microservice (theo ngữ cảnh OneSubs)</h3>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:180px"></th>
+                        <th>Features</th>
+                        <th>Java Compat</th>
+                        <th>Scale</th>
+                        <th>Maintenance</th>
+                        <th>Simplicity</th>
+                        <th>Tổng</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Netty-SocketIO</strong></td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-yellow" style="width:60%"></div></div> 6</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:100%"></div></div> 10</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-yellow" style="width:60%"></div></div> 6</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-yellow" style="width:60%"></div></div> 6</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-yellow" style="width:70%"></div></div> 7</div>
+                        </td>
+                        <td><strong>35/50</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Centrifugo</strong></td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:100%"></div></div> 10</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-red" style="width:30%"></div></div> 3</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:100%"></div></div> 10</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:90%"></div></div> 9</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-yellow" style="width:70%"></div></div> 7</div>
+                        </td>
+                        <td><strong class="rec">39/50</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Soketi</strong></td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-yellow" style="width:70%"></div></div> 7</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-red" style="width:30%"></div></div> 3</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-yellow" style="width:70%"></div></div> 7</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-yellow" style="width:50%"></div></div> 5</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-yellow" style="width:70%"></div></div> 7</div>
+                        </td>
+                        <td><strong>29/50</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Mercure</strong></td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-red" style="width:40%"></div></div> 4</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-red" style="width:30%"></div></div> 3</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-yellow" style="width:60%"></div></div> 6</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:80%"></div></div> 8</div>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="bar"><div class="fill fill-green" style="width:80%"></div></div> 8</div>
+                        </td>
+                        <td><strong>29/50</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="decision-box">
+            <h3>Kết luận: Open-source nào cho Microservice?</h3>
+            <p class="winner">→ Centrifugo (best overall) · Netty-SocketIO (best Java option)</p>
+            <p style="margin-top:0.5rem"><strong>Centrifugo</strong> thắng về features + scale + maintenance. <strong>Netty-SocketIO</strong> là lựa chọn tốt nhất nếu ưu tiên cùng stack Java — embed được trong cùng JAR, debug/profile chung, nhưng thiếu presence/history/admin UI. Với OneSubs hiện tại, microservice vẫn là overkill.</p>
+        </div>
+
+        <div class="section-sep"></div>
+
+        <!-- ==================== TỔNG KẾT ==================== -->
+        <h2>4. Tổng kết & Khuyến nghị</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Câu hỏi</th>
+                        <th>Kết luận</th>
+                        <th>Lý do</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Library hay Microservice?</strong></td>
+                        <td><span class="rec">Library (trong monolith)</span></td>
+                        <td>Monolith hiện tại, ít user, không cần infra mới</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Công nghệ nào?</strong></td>
+                        <td><span class="rec">Spring WebSocket + STOMP</span></td>
+                        <td>Two-way cho chat tương lai, topic/room có sẵn, tích hợp Spring Security</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Nếu microservice?</strong></td>
+                        <td><span class="rec">Centrifugo</span></td>
+                        <td>Feature đầy đủ nhất, Go performance, admin UI</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Module name?</strong></td>
+                        <td><code>realtime-library</code></td>
+                        <td>Tách khỏi notification-library (Telegram = outbound, WS = inbound connection)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>Roadmap đề xuất</h3>
+        <div class="arch-diagram"><span class="green">Phase 1 (hiện tại — OS-125):</span>
+  realtime-library + Spring WebSocket STOMP
+  → Push notification (đơn hàng mới, trạng thái, assignment)
+  → Role-based topics (Admin/Sale/Tech)
+
+<span class="yellow">Phase 2 (tương lai):</span>
+  Mở rộng realtime-library
+  → Live chat trên đơn hàng (two-way messaging)
+  → Presence (online status)
+
+<span class="purple">Phase 3 (khi cần scale):</span>
+  Tách realtime-library → Centrifugo microservice
+  → Khi concurrent connections >500
+  → Khi cần horizontal scaling riêng cho WS</div>
+
+        <div class="section-sep"></div>
+
+        <!-- ==================== PHẦN 5 ==================== -->
+        <h2>5. Mở rộng Chat — Khi nào cần tách Microservice?</h2>
+        <p>Phân tích theo loại chat để quyết định kiến trúc phù hợp.</p>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tiêu chí</th>
+                        <th>Chat nội bộ (nhân viên ↔ nhân viên)</th>
+                        <th>Chat với khách hàng (end-user facing)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Mô tả</strong></td>
+                        <td>Admin/Sale/Tech trao đổi trên đơn hàng</td>
+                        <td>Khách hàng chat trực tiếp với support</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Số user đồng thời</strong></td>
+                        <td><span class="tag tag-green">~20-50</span> (nhân viên nội bộ)</td>
+                        <td><span class="tag tag-red">Hàng trăm → hàng nghìn</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Message volume</strong></td>
+                        <td><span class="tag tag-green">Thấp</span> — chat theo đơn hàng, không liên tục</td>
+                        <td><span class="tag tag-red">Cao</span> — nhiều conversation song song, liên tục</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Availability yêu cầu</strong></td>
+                        <td><span class="tag tag-green">Chấp nhận downtime</span> khi deploy</td>
+                        <td><span class="tag tag-red">Always-on</span> — mất kết nối = mất khách</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Deploy impact</strong></td>
+                        <td>Restart → 20 nhân viên reconnect nhanh, không ai để ý</td>
+                        <td>Restart → 500 khách đang chat bị ngắt → UX tệ</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Scale pattern</strong></td>
+                        <td>Scale cùng API server là đủ</td>
+                        <td>WS connections ≠ API load → cần scale riêng</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Kiến trúc</strong></td>
+                        <td><span class="tag tag-green">Giữ trong monolith</span> — realtime-library</td>
+                        <td><span class="tag tag-purple">Tách microservice</span> — Centrifugo hoặc Netty-SocketIO</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>Decision Tree</h3>
+        <div class="arch-diagram"><span class="highlight">Cần real-time BE → FE?</span>
+  │
+  ├── Notification only (one-way)
+  │     └── <span class="green">realtime-library (Spring WS STOMP) trong monolith</span>
+  │
+  ├── + Chat nội bộ (nhân viên ↔ nhân viên)
+  │     │   Concurrent: ~20-50 | Volume: thấp
+  │     └── <span class="green">Mở rộng realtime-library — vẫn trong monolith</span>
+  │
+  └── + Chat với khách hàng (end-user facing)
+        │   Concurrent: hàng trăm+ | Volume: cao | Uptime: critical
+        │
+        ├── Ưu tiên cùng stack Java?
+        │     └── <span class="yellow">Netty-SocketIO microservice (standalone JAR)</span>
+        │
+        └── Ưu tiên features + scale?
+              └── <span class="purple">Centrifugo microservice (Docker)</span></div>
+
+        <div class="cards">
+            <div class="card pro">
+                <h4><span class="tag tag-green">Chat nội bộ → Monolith</span></h4>
+                <ul>
+                    <li>Ít user → Spring WS STOMP thừa sức</li>
+                    <li>Cùng transaction context với domain events</li>
+                    <li>Cùng auth (Spring Security), không proxy</li>
+                    <li>Zero infra mới, zero ops overhead</li>
+                    <li>Đúng roadmap Phase 2: "Trò chuyện trực tiếp"</li>
+                </ul>
+            </div>
+            <div class="card pro">
+                <h4><span class="tag tag-purple">Chat khách hàng → Microservice</span></h4>
+                <ul>
+                    <li>Scale WS server độc lập khi traffic tăng</li>
+                    <li>Deploy WS server không ảnh hưởng API (zero-downtime)</li>
+                    <li>Centrifugo: presence, history, recovery có sẵn</li>
+                    <li>Horizontal scaling dễ dàng với Redis adapter</li>
+                    <li>Chỉ tách khi thực sự có nhu cầu (YAGNI)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="decision-box">
+            <h3>Kết luận: Chat có cần tách Microservice?</h3>
+            <p class="winner">→ Chat nội bộ: KHÔNG — giữ monolith</p>
+            <p class="winner">→ Chat khách hàng: CÓ — tách khi có nhu cầu</p>
+            <p style="margin-top:0.5rem">Hiện tại OneSubs chỉ cần notification + chat nội bộ (Phase 2) → monolith đủ. Nếu tương lai mở rộng ra chat với khách hàng (end-user), lúc đó mới tách realtime-library → Centrifugo microservice. Kiến trúc library hiện tại cho phép migration dễ dàng vì đã tách concern qua port/adapter.</p>
+        </div>
+
+        <footer>
+            OneSubs Admin — Real-time Notification Research | Generated 2026-04-06
+        </footer>
+
+    </div>
+</body>
+</html>

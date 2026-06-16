@@ -1,23 +1,43 @@
 {
-  "token_hmac_secret_key": "demo-secret-key-change-me",
-  "api_key": "demo-api-key",
+  "_comment_scope": "OS-137 DEV LOCAL — KHÔNG dùng cho production. File này commit vào repo với secret DEV nhẹ (chỉ local). Production dùng bundle riêng ở docker/centrifugo/ (Phase 5) với biến env.",
+
+  "_comment_admin": "Bật admin UI ở http://localhost:8100/ để xem connection + thử publish thủ công. Production PHẢI tắt (admin:false).",
   "admin": true,
   "admin_password": "admin",
   "admin_secret": "admin-secret-change-me",
+
+  "_comment_api_key": "BE gửi header Authorization: apikey <giá trị này> khi POST /api/publish. BẮT BUỘC trùng với biến env CENTRIFUGO_API_KEY ở admin-env.local. FE KHÔNG được biết.",
+  "api_key": "centrifugo-api-key-local-dev",
+
+  "_comment_token_hmac": "Secret HMAC dùng verify JWT. BẮT BUỘC trùng với biến env JWT_SECRET của BE (xem jwt.secret trong application.yml). FE lấy JWT từ /auth/v1/login rồi dùng chính JWT đó để mở websocket — không cần endpoint xin token realtime riêng (R-2 research.md).",
+  "token_hmac_secret_key": "onesubs-admin-secret-key-for-jwt-must-be-at-least-32-characters",
+
+  "_comment_allowed_origins": "CORS whitelist cho websocket handshake. Local để * cho tiện; production siết ['https://1subs.work'].",
   "allowed_origins": ["*"],
-  "presence": true,
-  "history_size": 10,
-  "history_ttl": "300s",
-  "allow_subscribe_for_client": true,
-  "allow_publish_for_client": false,
+
+  "_comment_namespaces": "Khai báo namespace 'notifications' — khớp prefix của channel key dạng 'notifications:user:{id}', 'notifications:broadcast:staff', 'notifications:role:{name}'. Nếu FE subscribe channel không có prefix khớp, Centrifugo reject.",
   "namespaces": [
     {
       "name": "notifications",
-      "presence": true,
-      "history_size": 10,
-      "history_ttl": "300s",
+
+      "_comment_subscribe": "FE được subscribe (nhận message) — đúng FR-015.",
       "allow_subscribe_for_client": true,
-      "allow_publish_for_client": false
+
+      "_comment_publish": "FE KHÔNG được publish trực tiếp qua Centrifugo — buộc đi qua REST BE. Chỉ BE (có api_key) được publish (FR-014/015).",
+      "allow_publish_for_client": false,
+
+      "_comment_presence": "Bật presence để Phase 6 US4 (GET /channels/{key}/presence) lấy list user đang online.",
+      "presence": true,
+
+      "_comment_join_leave": "Bật event join/leave cho FE hiển thị thông báo online/offline nếu muốn (không bắt buộc demo P1).",
+      "join_leave": true,
+
+      "_comment_history": "Lưu 100 message gần nhất trong RAM 5 phút — phục vụ client reconnect sau mất mạng ngắn lấy lại event đã miss. Lịch sử chính vẫn lưu ở DB (bảng message).",
+      "history_size": 100,
+      "history_ttl": "5m",
+
+      "_comment_recover": "Cho phép client gửi last_offset khi reconnect để Centrifugo trả event đã miss trong history_ttl.",
+      "force_recovery": false
     }
   ]
 }

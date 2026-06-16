@@ -1,13 +1,65 @@
+# ============================================================================
+# OS-137 — Centrifugo v5 cho môi trường dev LOCAL
+# ----------------------------------------------------------------------------
+# Mục đích: dựng 1 container Centrifugo duy nhất để BE publish + FE subscribe
+# test realtime. KHÔNG dùng cho production — bản production sẽ bàn giao qua
+# thư mục docker/centrifugo/ (Phase 5) với secret thật + allowed_origins siết.
+#
+# Cách chạy:
+#   cd plans/OS-137-centrifugo-local
+#   docker compose up -d
+#   curl http://localhost:${CENTRIFUGO_PORT:-8100}/health   # => {"status":"ok"}
+#
+# Dừng:
+#   docker compose down
+#
+# Đổi port: chỉnh biến CENTRIFUGO_PORT ở shell hoặc file .env cạnh file này
+# (vd: CENTRIFUGO_PORT=9100 docker compose up -d).
+#
+# Lưu ý: BE đọc URL qua biến CENTRIFUGO_URL — nếu đổi port ở đây thì phải
+# chỉnh admin-env.local cho trùng (xem README.md cùng thư mục).
+# ============================================================================
+
 services:
   centrifugo:
+    # Image chính thức Centrifugo v5 (ổn định, đủ feature: JWT HMAC, presence,
+    # namespaces). KHÔNG dùng :latest để tránh bump version ngoài ý muốn.
     image: centrifugo/centrifugo:v5
-    container_name: Netty-SocketIO-demo
-    command: centrifugo -c config.json
+
+    # Tên container cho dễ docker logs / docker exec. Đổi khỏi tên "Netty-*"
+    # cũ để đúng scope task.
+    container_name: onesubs-centrifugo-local
+
+    # Lệnh mặc định đã là centrifugo -c config.json, set lại cho tường minh.
+    command: centrifugo -c /centrifugo/config.json
+
     volumes:
-      - ./config.json:/centrifugo/config.json
+      # Mount config.json từ host vào container (read-only để tránh ghi ngược).
+      # File config.json nằm cùng thư mục với docker-compose.yml này.
+      - ./config.json:/centrifugo/config.json:ro
+
     ports:
-      - "8000:8000"
+      # Map host:container. Host port qua biến CENTRIFUGO_PORT (default 8100).
+      # Container lắng nghe cố định 8000 (theo config.json nội bộ).
+      - "${CENTRIFUGO_PORT:-8100}:8000"
+
     ulimits:
+      # Centrifugo khuyến nghị tăng soft/hard limit file descriptor để giữ
+      # nhiều websocket connection đồng thời. Giá trị 65536 thừa cho demo
+      # scale < 50 staff.
       nofile:
         soft: 65536
         hard: 65536
+
+    # Tự restart khi host khởi động lại (hợp với dev máy local).
+    restart: unless-stopped
+
+    # Health check: gọi /health endpoint của Centrifugo mỗi 10s — nếu fail
+    # liên tiếp 3 lần, container chuyển trạng thái unhealthy để developer
+    # phát hiện nhanh.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s

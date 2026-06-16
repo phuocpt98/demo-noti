@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(curl -sS -m 3 -o /dev/null -w \"stats:%{http_code}\\\\n\" http://localhost:8080/api/stats)",
+      "Bash(lsof -nP -iTCP:8080 -sTCP:LISTEN)"
     ]
   }
 }
